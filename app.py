@@ -47,9 +47,27 @@ if not data.empty:
     
     st.metric(label="Current Price (NSE)", value=f"₹{current_price:,.2f}")
 
-# 5. The Audit Button
+# 5. The Audit Button (Bulletproof Version)
 if st.button("ACTIVATE AI AUDIT"):
-    with st.spinner(f"Analyzing {ticker}..."):
-        prompt = f"Provide a brief 2-sentence investment audit for {ticker} at its current price of ₹{current_price}. Focus on long-term outlook and market sentiment."
-        response = model.generate_content(prompt)
-        st.success(response.text)
+    if not api_key:
+        st.error("Please enter your API Key in the sidebar first!")
+    else:
+        with st.spinner(f"Analyzing {ticker}..."):
+            try:
+                # We turn the price into a simple string to avoid the InvalidArgument error
+                clean_price = str(round(float(current_price), 2))
+                
+                # A very clear, simple prompt for the AI
+                audit_prompt = f"Analyze the stock {ticker} currently trading at {clean_price} INR. Give a 2-sentence long-term outlook."
+                
+                # Execute the AI call
+                response = model.generate_content(audit_prompt)
+                
+                if response.text:
+                    st.success(f"**AI Insight:** {response.text}")
+                else:
+                    st.error("The AI returned an empty response. Try again.")
+                    
+            except Exception as e:
+                # This will tell us exactly what is wrong if it fails again
+                st.error(f"AI Error: {str(e)}")
