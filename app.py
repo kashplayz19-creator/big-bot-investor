@@ -25,8 +25,8 @@ if not api_key:
 
 # Configure the AI
 genai.configure(api_key=api_key)
-# Upgrading to the 2026 Flagship Model
-model = genai.GenerativeModel('gemini-3-flash')
+# This will automatically pick Gemini 3 Flash today, and Gemini 4 next year!
+model = genai.GenerativeModel('gemini-flash-latest')
 # 3. The Watchlist (Added SBI, TCS, BEL, and Tata Motors)
 ticker = st.selectbox("Select Stock for Audit", 
                      ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
