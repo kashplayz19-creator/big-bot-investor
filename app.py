@@ -1,11 +1,9 @@
-import streamlit as st
-# ... other imports ...
-
 st.set_page_config(page_title="Big Bot Investor", page_icon="📈", layout="wide")
 import streamlit as st
 import yfinance as yf
 import google.generativeai as genai
 import plotly.graph_objects as go
+import pandas as pd
 
 # 1. SEO & Page Config
 st.set_page_config(page_title="Big Bot Investor | AI Stock Auditor", page_icon="📈")
