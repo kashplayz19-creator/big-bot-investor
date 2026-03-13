@@ -25,8 +25,8 @@ if not api_key:
 
 # Configure the AI
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
-
+# Upgrading to the 2026 Flagship Model
+model = genai.GenerativeModel('gemini-3-flash')
 # 3. The Watchlist (Added SBI, TCS, BEL, and Tata Motors)
 ticker = st.selectbox("Select Stock for Audit", 
                      ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
@@ -34,7 +34,6 @@ ticker = st.selectbox("Select Stock for Audit",
 # 4. Fetch Data & Display Chart
 st.subheader(f"Technical Preview: {ticker}")
 data = yf.download(ticker, period="1mo", interval="1d")
-
 if not data.empty:
     # Creating a Candlestick Chart
     fig = go.Figure(data=[go.Candlestick(x=data.index,
