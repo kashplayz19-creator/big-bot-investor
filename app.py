@@ -42,7 +42,9 @@ if not data.empty:
     fig.update_layout(height=400, template="plotly_dark", xaxis_rangeslider_visible=False)
     st.plotly_chart(fig, use_container_width=True)
     
-    current_price = data['Close'].iloc[-1]
+    # We use .iloc[-1] to grab only the most recent price from the list
+    current_price = float(data['Close'].iloc[-1])
+    
     st.metric(label="Current Price (NSE)", value=f"₹{current_price:,.2f}")
 
 # 5. The Audit Button
