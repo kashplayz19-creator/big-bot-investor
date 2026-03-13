@@ -1,9 +1,10 @@
-st.set_page_config(page_title="Big Bot Investor", page_icon="📈", layout="wide")
 import streamlit as st
 import yfinance as yf
-import google.generativeai as genai
-import plotly.graph_objects as go
 import pandas as pd
+import plotly.graph_objects as go
+import google.generativeai as genai
+# NOW you can use st.set_page_config
+st.set_page_config(page_title="Big Bot Investor", page_icon="📈", layout="wide")
 
 # 1. SEO & Page Config
 st.set_page_config(page_title="Big Bot Investor | AI Stock Auditor", page_icon="📈")
