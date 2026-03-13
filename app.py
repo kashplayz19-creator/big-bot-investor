@@ -31,25 +31,39 @@ model = genai.GenerativeModel('gemini-flash-latest')
 ticker = st.selectbox("Select Stock for Audit", 
                      ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
 
-# 4. Fetch Data & Display Chart
-st.subheader(f"Technical Preview: {ticker}")
-data = yf.download(ticker, period="1mo", interval="1d")
-if not data.empty:
-    # Creating a Candlestick Chart
-    fig = go.Figure(data=[go.Candlestick(x=data.index,
-                    open=data['Open'],
-                    high=data['High'],
-                    low=data['Low'],
-                    close=data['Close'],
-                    name="Price Action")])
-    fig.update_layout(height=400, template="plotly_dark", xaxis_rangeslider_visible=False)
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # We use .iloc[-1] to grab only the most recent price from the list
-    current_price = float(data['Close'].iloc[-1])
-    
-    st.metric(label="Current Price (NSE)", value=f"₹{current_price:,.2f}")
 
+# 4. Fetch Data and Display Chart
+data = yf.download(ticker, period="1mo", interval="1d")
+
+# Fix for the 2026 Multi-Index column issue
+if isinstance(data.columns, pd.MultiIndex):
+    data.columns = data.columns.get_level_values(0)
+
+if not data.empty:
+    # 5. Show Metric
+    current_price = float(data['Close'].iloc[-1])
+    st.metric(label=f"Current Price ({ticker})", value=f"₹{current_price:,.2f}")
+
+    # 6. Build Professional Chart
+    fig = go.Figure(data=[go.Candlestick(
+        x=data.index,
+        open=data['Open'],
+        high=data['High'],
+        low=data['Low'],
+        close=data['Close']
+    )])
+    
+    fig.update_layout(
+        template="plotly_dark", 
+        xaxis_rangeslider_visible=False,
+        height=450,
+        margin=dict(l=10, r=10, t=30, b=10)
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("Data is currently unavailable for this ticker.")  
+    
 # 5. The Audit Button (Bulletproof Version)
 if st.button("ACTIVATE AI AUDIT"):
     if not api_key:
