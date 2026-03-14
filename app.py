@@ -1,172 +1,139 @@
 import streamlit as st
 import google.generativeai as genai
+import yfinance as yf
+import pandas as pd
+import plotly.graph_objects as go
 import gspread
 from google.oauth2.service_account import Credentials
 from PIL import Image
 from datetime import datetime
 import os
+import time
 
-# --- GOOGLE SHEETS SETUP ---
-# Place this right after you configure your GEMINI_API_KEY
-scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-
-# Make sure 'service_account.json' is in your GitHub/folder!
-creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
-client = gspread.authorize(creds)
-sheet = client.open("My_Stock_Audits").sheet1 
-
-# --- GEMINI SETUP ---
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model_pro = genai.GenerativeModel('gemini-1.5-pro')
-
-# This is the "Identity" of your bot. 
-# It ensures the AI doesn't give generic advice.
-SYSTEM_BEHAVIOR = """
-You are 'Big Bot Pro', a specialized AI for the Indian Stock Market.
-Your expertise includes:
-1. Technical Analysis (Candlesticks, RSI, Moving Averages).
-2. Fundamental Analysis (PE Ratios, HDFC/SBI quarterly results).
-3. Tone: Professional, concise, and focused on long-term wealth.
-4. Language: Use Indian formatting (Lakhs/Crores) when discussing money.
-"""
-
-# NOW you can use st.set_page_config (ONLY ONCE)
+# 1. PAGE CONFIG (Must be the very first Streamlit command)
 st.set_page_config(
     page_title="Big Bot Investor | AI Stock Auditor", 
     page_icon="📈", 
     layout="wide"
 )
 
-st.title("🚀 MISSION: BIG BOT")
-st.markdown("### AI-Powered Equity Auditor for the Indian Market")
+# 2. GOOGLE SHEETS SETUP
+# This connects your bot to your "My_Stock_Audits" Google Sheet
+try:
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    # Ensure 'service_account.json' is uploaded to your GitHub/Project folder
+    creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
+    client = gspread.authorize(creds)
+    sheet = client.open("My_Stock_Audits").sheet1 
+except Exception as e:
+    st.sidebar.error(f"Google Sheets Connection Error: {e}")
 
-# 2. Security: Checking for the Key in Secrets or Sidebar
+# 3. IDENTITY & SECURITY SETUP
+SYSTEM_BEHAVIOR = """
+You are 'Big Bot Pro', a specialized AI for the Indian Stock Market.
+Your expertise includes Technical Analysis (RSI, Moving Averages) and Fundamental Analysis.
+Tone: Professional and concise. Use Indian formatting (Lakhs/Crores).
+"""
+
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 else:
-    api_key = st.sidebar.text_input("Enter Gemini API Key to Unlock Brain", type="password")
+    api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
 
 if not api_key:
-    st.warning("Please add your Gemini API Key to the Sidebar or Secrets to begin.")
+    st.warning("Please add your API Key to begin.")
     st.stop()
 
-# Configure the AI
 genai.configure(api_key=api_key)
-# This will automatically pick Gemini 3 Flash today, and Gemini 4 next year!
-model = genai.GenerativeModel('gemini-flash-latest')
-# 3. The Watchlist (Added SBI, TCS, BEL, and Tata Motors)
-ticker = st.selectbox("Select Stock for Audit", 
-                     ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
+model_flash = genai.GenerativeModel('gemini-flash-latest')
+model_pro = genai.GenerativeModel(model_name='gemini-1.5-pro', system_instruction=SYSTEM_BEHAVIOR)
 
-# Function for Nano Banana Pro Chat/Generation
-import time # Add this at the very top of your file
+# --- HELPER FUNCTIONS ---
 
 def log_audit_to_sheet(ticker, audit_text):
-    row = [datetime.now().strftime("%Y-%m-%d %H:%M"), ticker, audit_text[:500]]
-    sheet.append_row(row)
-def chat_with_pro(user_input):
+    """Saves the audit result to Google Sheets"""
     try:
-        # We tell the model who it is using our new SYSTEM_BEHAVIOR
-        model_pro = genai.GenerativeModel(
-            model_name='gemini-1.5-pro',
-            system_instruction=SYSTEM_BEHAVIOR
-        )
+        row = [datetime.now().strftime("%Y-%m-%d %H:%M"), ticker, audit_text[:500]]
+        sheet.append_row(row)
+    except:
+        pass # Silently fail if sheets isn't connected
 
+def chat_with_pro(user_input):
+    """Handles the Chatbox logic (Text and Images)"""
+    try:
         if "draw" in user_input.lower() or "image" in user_input.lower():
-            # Triggering the Image Generation
             response = model_pro.generate_content(user_input)
-            
-            # PYTHON CHECK: Did the AI actually send an image?
             if response.candidates[0].content.parts[0].inline_data:
                 return response.candidates[0].content.parts[0].inline_data
             else:
                 return "The AI couldn't generate the image. Try a different description!"
-        
         else:
-            # Standard high-speed chat
             response = model_pro.generate_content(user_input)
             return response.text
-
     except Exception as e:
         return f"Python Error: {str(e)}"
 
-# 4. Fetch Data and Display Chart
-data = yf.download(ticker, period="1mo", interval="1d")
+# --- MAIN APP UI ---
 
-# Fix for the 2026 Multi-Index column issue
+st.title("🚀 MISSION: BIG BOT")
+st.markdown("### AI-Powered Equity Auditor for the Indian Market")
+
+ticker = st.selectbox("Select Stock for Audit", 
+                     ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
+
+# Fetch Stock Data
+data = yf.download(ticker, period="1mo", interval="1d")
 if isinstance(data.columns, pd.MultiIndex):
     data.columns = data.columns.get_level_values(0)
 
 if not data.empty:
-    # 5. Show Metric
     current_price = float(data['Close'].iloc[-1])
     st.metric(label=f"Current Price ({ticker})", value=f"₹{current_price:,.2f}")
 
-    # 6. Build Professional Chart
     fig = go.Figure(data=[go.Candlestick(
-        x=data.index,
-        open=data['Open'],
-        high=data['High'],
-        low=data['Low'],
-        close=data['Close']
+        x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close']
     )])
-    
-    fig.update_layout(
-        template="plotly_dark", 
-        xaxis_rangeslider_visible=False,
-        height=450,
-        margin=dict(l=10, r=10, t=30, b=10)
-    )
-    
+    fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=450)
     st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("Data is currently unavailable for this ticker.")  
-    
-# 5. The Audit Button (Bulletproof Version)
-if st.button("ACTIVATE AI AUDIT"):
-    if not api_key:
-        st.error("Please enter your API Key in the sidebar first!")
-    else:
+
+    # THE AUDIT BUTTON
+    if st.button("ACTIVATE AI AUDIT"):
         with st.spinner(f"Analyzing {ticker}..."):
             try:
-                # We turn the price into a simple string to avoid the InvalidArgument error
                 clean_price = str(round(float(current_price), 2))
-                
-                # A very clear, simple prompt for the AI
-                audit_prompt = f"Analyze the stock {ticker} currently trading at {clean_price} INR. Give a 2-sentence long-term outlook."
-                
-                # Execute the AI call
-                response = model.generate_content(audit_prompt)
+                audit_prompt = f"Analyze {ticker} at {clean_price} INR. Give a 2-sentence long-term outlook."
+                response = model_flash.generate_content(audit_prompt)
                 
                 if response.text:
                     st.success(f"**AI Insight:** {response.text}")
+                    # --- NEW: SAVE TO GOOGLE SHEETS ---
+                    log_audit_to_sheet(ticker, response.text)
+                    st.info("Audit logged to Google Sheets!")
                 else:
-                    st.error("The AI returned an empty response. Try again.")
-                    
+                    st.error("Empty response from AI.")
             except Exception as e:
-                # This will tell us exactly what is wrong if it fails again
                 st.error(f"AI Error: {str(e)}")
 
-# --- START OF NEW CHATBOX CODE ---
+else:
+    st.warning("Data unavailable.")
+
+# --- CHATBOX SECTION ---
 st.divider()
 st.subheader("🤖 Chat with Big Bot Pro")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Chat input box
-if prompt := st.chat_input("Ask Big Bot a question or 'Draw a bull market'"):
+if prompt := st.chat_input("Ask about HDFC or 'Draw a bull market'"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # This calls the function we added earlier
         result = chat_with_pro(prompt) 
         if isinstance(result, str):
             st.markdown(result)
@@ -174,4 +141,3 @@ if prompt := st.chat_input("Ask Big Bot a question or 'Draw a bull market'"):
         else:
             st.image(result)
             st.session_state.messages.append({"role": "assistant", "content": "Generated an image!"})
-# --- END OF NEW CHATBOX CODE ---
