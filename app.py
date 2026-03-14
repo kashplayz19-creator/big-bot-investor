@@ -17,15 +17,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. GOOGLE SHEETS SETUP
-# This connects your bot to your "My_Stock_Audits" Google Sheet
+# 2. GOOGLE SHEETS SETUP (The Secrets Way)
 try:
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    # Ensure 'service_account.json' is uploaded to your GitHub/Project folder
-    creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
+    
+    # CHANGE 1: Pull info from your Secrets box instead of a file
+    creds_info = st.secrets["gcp_service_account"]
+    
+    # CHANGE 2: Use 'from_service_account_info' instead of '_file'
+    creds = Credentials.from_service_account_info(creds_info, scopes=scopes)
+    
     client = gspread.authorize(creds)
     sheet = client.open("My_Stock_Audits").sheet1 
 except Exception as e:
+    # If there's a typo in your Secrets, this error will tell you
     st.sidebar.error(f"Google Sheets Connection Error: {e}")
 
 # 3. IDENTITY & SECURITY SETUP
