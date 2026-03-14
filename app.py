@@ -1,13 +1,15 @@
+import google.generativeai as genai
 import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
-import google.generativeai as genai
-# NOW you can use st.set_page_config
-st.set_page_config(page_title="Big Bot Investor", page_icon="📈", layout="wide")
 
-# 1. SEO & Page Config
-st.set_page_config(page_title="Big Bot Investor | AI Stock Auditor", page_icon="📈")
+# NOW you can use st.set_page_config (ONLY ONCE)
+st.set_page_config(
+    page_title="Big Bot Investor | AI Stock Auditor", 
+    page_icon="📈", 
+    layout="wide"
+)
 
 st.title("🚀 MISSION: BIG BOT")
 st.markdown("### AI-Powered Equity Auditor for the Indian Market")
@@ -30,6 +32,23 @@ model = genai.GenerativeModel('gemini-flash-latest')
 ticker = st.selectbox("Select Stock for Audit", 
                      ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
 
+# Function for Nano Banana Pro Chat/Generation
+def chat_with_pro(user_input):
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+    
+    # If the user asks for a visual, use the Pro Image model
+    if "draw" in user_input.lower() or "image" in user_input.lower():
+        response = client.models.generate_content(
+            model="gemini-3-pro-image-preview",
+            contents=user_input,
+            config={'thinking': True} # This makes it "think" before drawing!
+        )
+        return response.generated_image # Returns the image object
+    else:
+        # Regular chat using the high-speed Flash brain
+        model = genai.GenerativeModel('gemini-flash-latest')
+        response = model.generate_content(user_input)
+        return response.text
 
 # 4. Fetch Data and Display Chart
 data = yf.download(ticker, period="1mo", interval="1d")
@@ -87,3 +106,32 @@ if st.button("ACTIVATE AI AUDIT"):
             except Exception as e:
                 # This will tell us exactly what is wrong if it fails again
                 st.error(f"AI Error: {str(e)}")
+
+# --- START OF NEW CHATBOX CODE ---
+st.divider()
+st.subheader("🤖 Chat with Big Bot Pro")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Chat input box
+if prompt := st.chat_input("Ask Big Bot a question or 'Draw a bull market'"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        # This calls the function we added earlier
+        result = chat_with_pro(prompt) 
+        if isinstance(result, str):
+            st.markdown(result)
+            st.session_state.messages.append({"role": "assistant", "content": result})
+        else:
+            st.image(result)
+            st.session_state.messages.append({"role": "assistant", "content": "Generated an image!"})
+# --- END OF NEW CHATBOX CODE ---
