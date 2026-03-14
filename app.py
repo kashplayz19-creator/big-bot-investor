@@ -33,21 +33,23 @@ ticker = st.selectbox("Select Stock for Audit",
                      ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
 
 # Function for Nano Banana Pro Chat/Generation
+import time # Add this at the very top of your file
+
 def chat_with_pro(user_input):
-    # We use the 'model' we already configured at the top of your script
-    # If the user asks for a visual, we use the Pro model
-    if "draw" in user_input.lower() or "image" in user_input.lower():
-        # Using the standard library's way of calling the Pro model
-        pro_model = genai.GenerativeModel('gemini-3-pro-image-preview')
-        response = pro_model.generate_content(user_input)
-        
-        # In this library, we check if there's an image in the parts
-        return response.candidates[0].content.parts[0].inline_data
-    else:
-        # Regular chat using the high-speed Flash brain
-        # This uses the 'model' variable you already defined on line 28
-        response = model.generate_content(user_input)
-        return response.text
+    try:
+        if "draw" in user_input.lower() or "image" in user_input.lower():
+            pro_model = genai.GenerativeModel('gemini-3-pro-image-preview')
+            response = pro_model.generate_content(user_input)
+            return response.candidates[0].content.parts[0].inline_data
+        else:
+            response = model.generate_content(user_input)
+            return response.text
+            
+    except Exception as e:
+        if "429" in str(e) or "ResourceExhausted" in str(e):
+            return "⚠️ **System Overload:** I'm a bit tired! Please wait 30 seconds and try again. Google's free tier is limiting us right now."
+        else:
+            return f"❌ **Error:** {str(e)}"
 
 # 4. Fetch Data and Display Chart
 data = yf.download(ticker, period="1mo", interval="1d")
