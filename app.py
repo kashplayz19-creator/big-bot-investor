@@ -1,8 +1,34 @@
-import google.generativeai as genai
 import streamlit as st
-import yfinance as yf
-import pandas as pd
-import plotly.graph_objects as go
+import google.generativeai as genai
+import gspread
+from google.oauth2.service_account import Credentials
+from PIL import Image
+from datetime import datetime
+import os
+
+# --- GOOGLE SHEETS SETUP ---
+# Place this right after you configure your GEMINI_API_KEY
+scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+
+# Make sure 'service_account.json' is in your GitHub/folder!
+creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
+client = gspread.authorize(creds)
+sheet = client.open("My_Stock_Audits").sheet1 
+
+# --- GEMINI SETUP ---
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+model_pro = genai.GenerativeModel('gemini-1.5-pro')
+
+# This is the "Identity" of your bot. 
+# It ensures the AI doesn't give generic advice.
+SYSTEM_BEHAVIOR = """
+You are 'Big Bot Pro', a specialized AI for the Indian Stock Market.
+Your expertise includes:
+1. Technical Analysis (Candlesticks, RSI, Moving Averages).
+2. Fundamental Analysis (PE Ratios, HDFC/SBI quarterly results).
+3. Tone: Professional, concise, and focused on long-term wealth.
+4. Language: Use Indian formatting (Lakhs/Crores) when discussing money.
+"""
 
 # NOW you can use st.set_page_config (ONLY ONCE)
 st.set_page_config(
@@ -35,21 +61,34 @@ ticker = st.selectbox("Select Stock for Audit",
 # Function for Nano Banana Pro Chat/Generation
 import time # Add this at the very top of your file
 
+def log_audit_to_sheet(ticker, audit_text):
+    row = [datetime.now().strftime("%Y-%m-%d %H:%M"), ticker, audit_text[:500]]
+    sheet.append_row(row)
 def chat_with_pro(user_input):
     try:
+        # We tell the model who it is using our new SYSTEM_BEHAVIOR
+        model_pro = genai.GenerativeModel(
+            model_name='gemini-1.5-pro',
+            system_instruction=SYSTEM_BEHAVIOR
+        )
+
         if "draw" in user_input.lower() or "image" in user_input.lower():
-            pro_model = genai.GenerativeModel('gemini-3-pro-image-preview')
-            response = pro_model.generate_content(user_input)
-            return response.candidates[0].content.parts[0].inline_data
-        else:
-            response = model.generate_content(user_input)
-            return response.text
+            # Triggering the Image Generation
+            response = model_pro.generate_content(user_input)
             
-    except Exception as e:
-        if "429" in str(e) or "ResourceExhausted" in str(e):
-            return "⚠️ **System Overload:** I'm a bit tired! Please wait 30 seconds and try again. Google's free tier is limiting us right now."
+            # PYTHON CHECK: Did the AI actually send an image?
+            if response.candidates[0].content.parts[0].inline_data:
+                return response.candidates[0].content.parts[0].inline_data
+            else:
+                return "The AI couldn't generate the image. Try a different description!"
+        
         else:
-            return f"❌ **Error:** {str(e)}"
+            # Standard high-speed chat
+            response = model_pro.generate_content(user_input)
+            return response.text
+
+    except Exception as e:
+        return f"Python Error: {str(e)}"
 
 # 4. Fetch Data and Display Chart
 data = yf.download(ticker, period="1mo", interval="1d")
