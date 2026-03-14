@@ -34,19 +34,18 @@ ticker = st.selectbox("Select Stock for Audit",
 
 # Function for Nano Banana Pro Chat/Generation
 def chat_with_pro(user_input):
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # If the user asks for a visual, use the Pro Image model
+    # We use the 'model' we already configured at the top of your script
+    # If the user asks for a visual, we use the Pro model
     if "draw" in user_input.lower() or "image" in user_input.lower():
-        response = client.models.generate_content(
-            model="gemini-3-pro-image-preview",
-            contents=user_input,
-            config={'thinking': True} # This makes it "think" before drawing!
-        )
-        return response.generated_image # Returns the image object
+        # Using the standard library's way of calling the Pro model
+        pro_model = genai.GenerativeModel('gemini-3-pro-image-preview')
+        response = pro_model.generate_content(user_input)
+        
+        # In this library, we check if there's an image in the parts
+        return response.candidates[0].content.parts[0].inline_data
     else:
         # Regular chat using the high-speed Flash brain
-        model = genai.GenerativeModel('gemini-flash-latest')
+        # This uses the 'model' variable you already defined on line 28
         response = model.generate_content(user_input)
         return response.text
 
