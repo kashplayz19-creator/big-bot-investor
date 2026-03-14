@@ -1,5 +1,8 @@
 streamlit
-yfinance
 google-generativeai
-plotly
+yfinance
 pandas
+plotly
+gspread
+google-auth
+pillow
