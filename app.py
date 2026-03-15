@@ -29,6 +29,34 @@ try:
     
     client = gspread.authorize(creds)
     sheet = client.open("My_Stock_Audits").sheet1 
+    st.header("📊 New Stock Audit")
+
+# Create two columns for a clean look
+col1, col2 = st.columns(2)
+
+with col1:
+    ticker = st.text_input("Stock Ticker", placeholder="e.g. HDFC BANK")
+    action = st.selectbox("Action", ["BUY", "SELL", "WATCHLIST"])
+    price = st.number_input("Current Price", min_value=0.0)
+
+with col2:
+    rsi_val = st.number_input("RSI (14-day)", min_value=0, max_value=100)
+    support = st.number_input("Major Support Level", min_value=0.0)
+
+notes = st.text_area("Audit Notes", placeholder="e.g. RSI is oversold, strong support at 1420...")
+
+if st.button("📝 Save Audit to Sheets"):
+    from datetime import datetime
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    
+    # Organize the data into a list
+    row_to_add = [date_str, ticker.upper(), action, price, rsi_val, support, notes]
+    
+    try:
+        sheet.append_row(row_to_add)
+        st.success(f"Successfully saved audit for {ticker}!")
+    except Exception as e:
+        st.error(f"Error saving: {e}")
 except Exception as e:
     # If there's a typo in your Secrets, this error will tell you
     st.sidebar.error(f"Google Sheets Connection Error: {e}")
