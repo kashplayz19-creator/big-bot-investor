@@ -104,8 +104,8 @@ st.header("📊 Manual Stock Entry")
 col1, col2 = st.columns(2)
 
 with col1:
-    m_ticker = st.text_input("Stock Name", value=active_ticker if active_ticker else "")
-    action = st.selectbox("Action", ["BUY", "SELL", "WATCHLIST"])
+m_ticker = st.text_input("Stock Name", value=active_ticker if active_ticker else "")   
+action = st.selectbox("Action", ["BUY", "SELL", "WATCHLIST"])
     m_price = st.number_input("Price to Log", value=active_price if active_price else 0.0)
 
 with col2:
