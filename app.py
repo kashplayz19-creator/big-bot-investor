@@ -146,3 +146,16 @@ if prompt := st.chat_input("Ask about HDFC or 'Draw a bull market'"):
         else:
             st.image(result)
             st.session_state.messages.append({"role": "assistant", "content": "Generated an image!"})
+
+# --- TEST SECTION ---
+st.divider() # Adds a visual line
+st.subheader("Testing the Connection")
+
+if st.button("🚀 Run Test Audit"):
+    try:
+        # This adds a test row to your Google Sheet
+        test_data = ["March 15", "TEST_TICKER", "BUY", "0.00", "Bot connection is working!"]
+        sheet.append_row(test_data)
+        st.success("Success! Check your Google Sheet named 'My_Stock_Audits'.")
+    except Exception as e:
+        st.error(f"Test failed: {e}")
