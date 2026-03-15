@@ -57,20 +57,11 @@ def log_audit_to_sheet(ticker, audit_text):
 st.title("🚀 MISSION: BIG BOT")
 st.markdown("### AI-Powered Equity Auditor for the Indian Market")
 
-# --- LIVE PRICE SECTION (Auto-refreshes) ---
-st.header("📈 Live Market Watch")
-
-# 1. The Heading goes first
-st.header("📈 Live Market Watch") 
-
-# 2. The Decorator goes second
-@st.fragment(run_every=15)
-# 3. THE FUNCTION MUST BE RIGHT UNDER THE DECORATOR
-def show_live_price():
-    t_input = st.text_input("Enter Ticker", value="TATAMOTORS.NS").upper()
-    # ... (rest of your code)
+st.divider()
 
 # --- LIVE PRICE SECTION ---
+st.header("📈 Live Market Watch")
+
 @st.fragment(run_every=15)
 def show_live_price():
     t_input = st.text_input("Enter Ticker (e.g. TATAMOTORS.NS)", value="TATAMOTORS.NS").upper()
@@ -79,7 +70,7 @@ def show_live_price():
             stock_data = yf.Ticker(t_input)
             live_p = stock_data.fast_info['last_price']
             
-            # Sunday Backup: if live price is 0 (market closed), get last Friday's close
+            # Sunday Backup: if market closed, get last Friday's close
             if live_p is None or live_p == 0:
                 hist = stock_data.history(period="1d")
                 if not hist.empty:
@@ -92,23 +83,19 @@ def show_live_price():
             st.error(f"Error fetching {t_input}: {e}")
     return None, None
 
-# --- BREAK THE INDENTATION HERE ---
-# Everything below must be pushed all the way to the LEFT margin
-
-st.header("📈 Live Market Watch") 
-
-# This line "calls" the function and saves the results for later use
+# Call the function
 active_ticker, active_price = show_live_price()
 
 st.divider()
 
-# Now we build the audit form
+# --- MANUAL AUDIT FORM ---
 st.header("📊 Manual Stock Entry")
 col1, col2 = st.columns(2)
 
 with col1:
-m_ticker = st.text_input("Stock Name", value=active_ticker if active_ticker else "")   
-action = st.selectbox("Action", ["BUY", "SELL", "WATCHLIST"])
+    # All these are now correctly indented!
+    m_ticker = st.text_input("Stock Name", value=active_ticker if active_ticker else "")   
+    action = st.selectbox("Action", ["BUY", "SELL", "WATCHLIST"])
     m_price = st.number_input("Price to Log", value=active_price if active_price else 0.0)
 
 with col2:
@@ -124,7 +111,7 @@ if st.button("📝 Save Entry to Sheets"):
         sheet.append_row(row_to_add)
         st.success(f"Saved {m_ticker} to My_Stock_Audits!")
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error saving: {e}")
 
 # --- CHARTING SECTION ---
 st.divider()
@@ -133,7 +120,6 @@ chart_ticker = st.selectbox("Select Chart", ["HDFCBANK.NS", "SBIN.NS", "TCS.NS",
 chart_data = yf.download(chart_ticker, period="1mo", interval="1d")
 
 if not chart_data.empty:
-    # Flatten columns if multi-indexed
     if isinstance(chart_data.columns, pd.MultiIndex):
         chart_data.columns = chart_data.columns.get_level_values(0)
         
