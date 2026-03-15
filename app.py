@@ -162,8 +162,8 @@ except Exception as e:
 
 st.divider()
 
-    fig = go.Figure(data=[go.Candlestick(
-        x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close']
+fig = go.Figure(data=[go.Candlestick(
+x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close']
     )])
     fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=450)
     st.plotly_chart(fig, use_container_width=True)
