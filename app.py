@@ -63,6 +63,17 @@ except Exception as e:
     # If there's a typo in your Secrets, this error will tell you
     st.sidebar.error(f"Google Sheets Connection Error: {e}")
 
+@st.fragment(run_every=10) # This updates the price every 10 seconds automatically!
+def show_live_price():
+    ticker_symbol = st.text_input("Enter Ticker", value="TATAMOTORS.NS")
+    if ticker_symbol:
+        data = yf.Ticker(ticker_symbol)
+        # Use 'fast_info' for quick live price fetching
+        price = data.fast_info['last_price']
+        st.metric(label=f"Live Price: {ticker_symbol}", value=f"₹{price:.2f}")
+
+show_live_price()
+
 # 3. IDENTITY & SECURITY SETUP
 SYSTEM_BEHAVIOR = """
 You are 'Big Bot Pro', a specialized AI for the Indian Stock Market.
