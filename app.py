@@ -14,7 +14,41 @@ st.set_page_config(
     page_icon="📈", 
     layout="wide"
 )
+# --- CUSTOM STYLING ---
+st.markdown("""
+    <style>
+    /* Card-like styling for metrics */
+    [data-testid="stMetricValue"] {
+        font-size: 30px;
+        color: #00ffcc;
+    }
+    div.stButton > button:first-child {
+        background-color: #00ffcc;
+        color: black;
+        border-radius: 20px;
+        border: none;
+        width: 100%;
+    }
+    .main {
+        background-color: #0e1117;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+# --- NAVIGATION TABS ---
+tab1, tab2, tab3 = st.tabs(["📈 Market Live", "📊 Audit Entry", "🤖 AI Strategy"])
+
+with tab1:
+    # Move your Live Price section and Charts here
+    pass
+
+with tab2:
+    # Move your Manual Entry form here
+    pass
+
+with tab3:
+    # Move the Chat section here
+    pass
 # --- 2. GOOGLE SHEETS SETUP ---
 try:
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
