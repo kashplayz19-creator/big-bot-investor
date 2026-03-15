@@ -9,8 +9,8 @@ from datetime import datetime
 
 # 1. PAGE CONFIG
 st.set_page_config(
-    page_title="Big Bot Pro | Terminal", 
-    page_icon="📈", 
+    page_title="Nexus Invest | Pro Terminal", 
+    page_icon="📡", # Swapped to a satellite/nexus icon
     layout="wide"
 )
 
