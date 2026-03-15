@@ -58,10 +58,10 @@ if st.button("📝 Save Audit to Sheets"):
         sheet.append_row(row_to_add)
         st.success(f"Successfully saved audit for {ticker}!")
     except Exception as e:
-        st.error(f"Error saving: {e}")
-except Exception as e:
-    # If there's a typo in your Secrets, this error will tell you
-    st.sidebar.error(f"Google Sheets Connection Error: {e}")
+        st.error(f"Error saving to Google Sheets: {e}")
+
+# IMPORTANT: Ensure there is NO 'except' block hanging here 
+# all by itself. It must be attached to a 'try' above it.
 
 @st.fragment(run_every=10) # This updates the price every 10 seconds automatically!
 def show_live_price():
