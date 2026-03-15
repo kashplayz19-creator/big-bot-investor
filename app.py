@@ -120,8 +120,34 @@ if isinstance(data.columns, pd.MultiIndex):
     data.columns = data.columns.get_level_values(0)
 
 if not data.empty:
-    current_price = float(data['Close'].iloc[-1])
-    st.metric(label=f"Current Price ({ticker})", value=f"₹{current_price:,.2f}")
+    import yfinance as yf
+import time
+
+st.header("📈 Live Market Watch")
+
+# 1. Input for any Indian Stock/ETF/Mutual Fund
+ticker_input = st.text_input("Enter Ticker (e.g., TATAMOTORS.NS, NIFTYBEES.NS)", "HDFC BANK.NS")
+
+# 2. Create a "placeholder" so the price updates in the same spot
+price_placeholder = st.empty()
+
+# 3. Logic to get the data
+try:
+    stock_data = yf.Ticker(ticker_input)
+    
+    # This loop keeps the price "Live"
+    # Note: In a real app, we limit this so it doesn't crash the browser
+    current_price = stock_data.fast_info['last_price']
+    currency = stock_data.fast_info['currency']
+    
+    with price_placeholder.container():
+        st.metric(label=f"Live Price: {ticker_input}", 
+                  value=f"{currency} {current_price:.2f}")
+        
+except Exception as e:
+    st.error(f"Could not find data for {ticker_input}. Make sure to add .NS for Indian stocks.")
+
+st.divider()
 
     fig = go.Figure(data=[go.Candlestick(
         x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close']
