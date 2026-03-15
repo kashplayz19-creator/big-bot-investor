@@ -6,184 +6,114 @@ import plotly.graph_objects as go
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import time
 
 # 1. PAGE CONFIG
 st.set_page_config(
-    page_title="Big Bot Investor | AI Stock Auditor", 
+    page_title="Big Bot Pro | Terminal", 
     page_icon="📈", 
     layout="wide"
 )
-# --- CUSTOM STYLING ---
+
+# --- 2. PREMIUM FINTECH UI (From AI Studio) ---
 st.markdown("""
     <style>
-    /* Card-like styling for metrics */
-    [data-testid="stMetricValue"] {
-        font-size: 30px;
-        color: #00ffcc;
+    .stApp { background-color: #0E1117; color: white; }
+    [data-testid="stMetricValue"] { font-size: 28px; color: #00FFCC !important; }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px 0;
     }
-    div.stButton > button:first-child {
-        background-color: #00ffcc;
-        color: black;
-        border-radius: 20px;
-        border: none;
-        width: 100%;
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px; white-space: pre-wrap; background-color: transparent;
+        border-radius: 4px 4px 0px 0px; color: white;
     }
-    .main {
-        background-color: #0e1117;
-    }
+    .stTabs [aria-selected="true"] { border-bottom: 2px solid #00FFCC !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- NAVIGATION TABS ---
-tab1, tab2, tab3 = st.tabs(["📈 Market Live", "📊 Audit Entry", "🤖 AI Strategy"])
-
-with tab1:
-    # Move your Live Price section and Charts here
-    pass
-
-with tab2:
-    # Move your Manual Entry form here
-    pass
-
-with tab3:
-    # Move the Chat section here
-    pass
-# --- 2. GOOGLE SHEETS SETUP ---
+# --- 3. BACKEND SETUP (API & SHEETS) ---
 try:
-    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds_info = st.secrets["gcp_service_account"]
-    creds = Credentials.from_service_account_info(creds_info, scopes=scopes)
-    client = gspread.authorize(creds)
-    sheet = client.open("My_Stock_Audits").sheet1 
+    creds = Credentials.from_service_account_info(creds_info, scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"])
+    sheet = gspread.authorize(creds).open("My_Stock_Audits").sheet1 
 except Exception as e:
-    st.sidebar.error(f"Google Sheets Connection Error: {e}")
-
-# --- 3. IDENTITY & SECURITY SETUP ---
-SYSTEM_BEHAVIOR = """
-You are 'Big Bot Pro', a specialized AI for the Indian Stock Market.
-Your expertise includes Technical Analysis (RSI, Moving Averages) and Fundamental Analysis.
-Tone: Professional and concise. Use Indian formatting (Lakhs/Crores).
-"""
+    st.sidebar.error(f"Sheets Connection Error: {e}")
 
 if "GEMINI_API_KEY" in st.secrets:
-    api_key = st.secrets["GEMINI_API_KEY"]
-else:
-    api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model_pro = genai.GenerativeModel('gemini-1.5-pro')
 
-if not api_key:
-    st.warning("Please add your API Key to begin.")
-    st.stop()
+# --- 4. NAVIGATION TABS ---
+tab1, tab2, tab3 = st.tabs(["⚡ LIVE TERMINAL", "🔍 AI AUDIT LOG", "🤖 STRATEGY CHAT"])
 
-genai.configure(api_key=api_key)
-model_flash = genai.GenerativeModel('gemini-1.5-flash')
-model_pro = genai.GenerativeModel(model_name='gemini-1.5-pro', system_instruction=SYSTEM_BEHAVIOR)
-
-# --- 4. HELPER FUNCTIONS ---
-def log_audit_to_sheet(ticker, audit_text):
-    try:
-        row = [datetime.now().strftime("%Y-%m-%d %H:%M"), ticker.upper(), audit_text[:500]]
-        sheet.append_row(row)
-    except:
-        pass
-
-# --- 5. MAIN UI ---
-st.title("🚀 MISSION: BIG BOT")
-st.markdown("### AI-Powered Equity Auditor for the Indian Market")
-
-st.divider()
-
-# --- LIVE PRICE SECTION ---
-st.header("📈 Live Market Watch")
-
-@st.fragment(run_every=15)
-def show_live_price():
-    t_input = st.text_input("Enter Ticker (e.g. TATAMOTORS.NS)", value="TATAMOTORS.NS").upper()
-    if t_input:
-        try:
-            stock_data = yf.Ticker(t_input)
-            live_p = stock_data.fast_info['last_price']
-            
-            # Sunday Backup: if market closed, get last Friday's close
-            if live_p is None or live_p == 0:
-                hist = stock_data.history(period="1d")
-                if not hist.empty:
-                    live_p = hist['Close'].iloc[-1]
-            
-            curr = stock_data.fast_info.get('currency', 'INR')
-            st.metric(label=f"Price: {t_input}", value=f"{curr} {live_p:.2f}")
-            return t_input, live_p
-        except Exception as e:
-            st.error(f"Error fetching {t_input}: {e}")
-    return None, None
-
-# Call the function
-active_ticker, active_price = show_live_price()
-
-st.divider()
-
-# --- MANUAL AUDIT FORM ---
-st.header("📊 Manual Stock Entry")
-col1, col2 = st.columns(2)
-
-with col1:
-    # All these are now correctly indented!
-    m_ticker = st.text_input("Stock Name", value=active_ticker if active_ticker else "")   
-    action = st.selectbox("Action", ["BUY", "SELL", "WATCHLIST"])
-    m_price = st.number_input("Price to Log", value=active_price if active_price else 0.0)
-
-with col2:
-    rsi_val = st.number_input("RSI (14-day)", min_value=0, max_value=100)
-    support = st.number_input("Support Level", min_value=0.0)
-
-notes = st.text_area("Analysis Notes")
-
-if st.button("📝 Save Entry to Sheets"):
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    row_to_add = [date_str, m_ticker.upper(), action, m_price, rsi_val, support, notes]
-    try:
-        sheet.append_row(row_to_add)
-        st.success(f"Saved {m_ticker} to My_Stock_Audits!")
-    except Exception as e:
-        st.error(f"Error saving: {e}")
-
-# --- CHARTING SECTION ---
-st.divider()
-st.subheader("📉 Technical Charts")
-chart_ticker = st.selectbox("Select Chart", ["HDFCBANK.NS", "SBIN.NS", "TCS.NS", "BEL.NS", "TATAMOTORS.NS"])
-chart_data = yf.download(chart_ticker, period="1mo", interval="1d")
-
-if not chart_data.empty:
-    if isinstance(chart_data.columns, pd.MultiIndex):
-        chart_data.columns = chart_data.columns.get_level_values(0)
+with tab1:
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    col_a, col_b = st.columns([1, 2])
+    
+    with col_a:
+        ticker_input = st.text_input("Enter NSE Ticker", value="TATAMOTORS.NS").upper()
         
-    fig = go.Figure(data=[go.Candlestick(
-        x=chart_data.index,
-        open=chart_data['Open'],
-        high=chart_data['High'],
-        low=chart_data['Low'],
-        close=chart_data['Close']
-    )])
-    fig.update_layout(template="plotly_dark", xaxis_rangeslider_visible=False, height=400)
-    st.plotly_chart(fig, use_container_width=True)
+        # LIVE PRICE FRAGMENT
+        @st.fragment(run_every=15)
+        def show_price_card(ticker):
+            try:
+                data = yf.Ticker(ticker)
+                price = data.fast_info['last_price']
+                if price is None or price == 0:
+                    price = data.history(period="1d")['Close'].iloc[-1]
+                st.metric(label=f"Current Price", value=f"₹{price:.2f}")
+                return price
+            except:
+                st.error("Ticker not found")
+                return 0
 
-# --- AI CHAT SECTION ---
-st.divider()
-st.subheader("🤖 Chat with Big Bot Pro")
+        current_price = show_price_card(ticker_input)
+    
+    with col_b:
+        # DARK MODE CHARTING (From AI Studio)
+        chart_data = yf.download(ticker_input, period="1mo", interval="1d")
+        if not chart_data.empty:
+            if isinstance(chart_data.columns, pd.MultiIndex):
+                chart_data.columns = chart_data.columns.get_level_values(0)
+            fig = go.Figure(data=[go.Candlestick(x=chart_data.index, open=chart_data['Open'], high=chart_data['High'], low=chart_data['Low'], close=chart_data['Close'])])
+            fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_rangeslider_visible=False, height=300, margin=dict(l=0,r=0,b=0,t=0))
+            st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+with tab2:
+    st.header("📋 Audit Stock Analysis")
+    c1, c2 = st.columns(2)
+    with c1:
+        m_ticker = st.text_input("Audit Ticker", value=ticker_input)
+        action = st.selectbox("Signal", ["BUY", "SELL", "WATCHLIST"])
+    with c2:
+        rsi = st.slider("RSI Level", 0, 100, 50)
+        support = st.number_input("Support Level", value=current_price * 0.95 if current_price else 0.0)
+    
+    notes = st.text_area("Audit Reasoning")
+    if st.button("LOG AUDIT TO SHEETS"):
+        try:
+            row = [datetime.now().strftime("%Y-%m-%d"), m_ticker, action, current_price, rsi, support, notes]
+            sheet.append_row(row)
+            st.success("Audit Logged!")
+        except Exception as e:
+            st.error(f"Failed: {e}")
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-if prompt := st.chat_input("Ask Big Bot Pro..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-        response = model_pro.generate_content(prompt)
-        st.markdown(response.text)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
+with tab3:
+    st.header("🤖 Big Bot Pro Intelligence")
+    if "messages" not in st.session_state: st.session_state.messages = []
+    for m in st.session_state.messages:
+        with st.chat_message(m["role"]): st.markdown(m["content"])
+    
+    if prompt := st.chat_input("Ask about market trends..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"): st.markdown(prompt)
+        with st.chat_message("assistant"):
+            response = model_pro.generate_content(prompt)
+            st.markdown(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
