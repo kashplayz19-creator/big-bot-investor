@@ -85,13 +85,17 @@ def show_live_price():
                 st.metric(label=f"Live Price: {t_input}", value=f"{curr} {live_p:.2f}")
                 return t_input, live_p
             else:
-                st.warning(f"Data for {t_input} is currently flat or unavailable. Market might be closed.")
+                st.warning(f"Data for {t_input} is currently flat or unavailable.")
                 
         except Exception as e:
-            st.error(f"Ticker {t_input} not found. Try adding .NS (NSE) or .BO (BSE).")
+            st.error(f"Ticker {t_input} not found.")
     return None, None
 
-# This line MUST stay outside the function to actually run it
+# --- NEW SECTION STARTS HERE ---
+# Make sure there is a blank line above this!
+st.header("📈 Live Market Watch") # This is your line 65
+
+# Call the function and get the values
 active_ticker, active_price = show_live_price()
 
 # --- MANUAL AUDIT FORM ---
