@@ -61,19 +61,37 @@ st.markdown("### AI-Powered Equity Auditor for the Indian Market")
 st.header("📈 Live Market Watch")
 
 @st.fragment(run_every=15)
+# --- LIVE PRICE SECTION (With Retry Logic) ---
+st.header("📈 Live Market Watch")
+
+@st.fragment(run_every=15)
 def show_live_price():
     t_input = st.text_input("Enter Ticker (e.g. TATAMOTORS.NS, NIFTYBEES.NS)", value="TATAMOTORS.NS").upper()
     if t_input:
         try:
             stock_data = yf.Ticker(t_input)
+            # Strategy 1: Try the fast info first
             live_p = stock_data.fast_info['last_price']
-            curr = stock_data.fast_info['currency']
-            st.metric(label=f"Live Price: {t_input}", value=f"{curr} {live_p:.2f}")
-            return t_input, live_p
-        except:
-            st.error("Ticker not found. Remember to add .NS for NSE stocks.")
+            
+            # Strategy 2: If fast_info returns 0 or None (common for some Indian stocks), use history
+            if live_p is None or live_p == 0:
+                hist = stock_data.history(period="1d")
+                if not hist.empty:
+                    live_p = hist['Close'].iloc[-1]
+            
+            curr = stock_data.fast_info.get('currency', 'INR')
+            
+            if live_p and live_p > 0:
+                st.metric(label=f"Live Price: {t_input}", value=f"{curr} {live_p:.2f}")
+                return t_input, live_p
+            else:
+                st.warning(f"Data for {t_input} is currently flat or unavailable. Market might be closed.")
+                
+        except Exception as e:
+            st.error(f"Ticker {t_input} not found. Try adding .NS (NSE) or .BO (BSE).")
     return None, None
 
+# This line MUST stay outside the function to actually run it
 active_ticker, active_price = show_live_price()
 
 # --- MANUAL AUDIT FORM ---
