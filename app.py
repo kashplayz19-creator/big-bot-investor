@@ -64,42 +64,39 @@ st.header("📈 Live Market Watch")
 # --- LIVE PRICE SECTION (With Retry Logic) ---
 st.header("📈 Live Market Watch")
 
+# --- LIVE PRICE SECTION ---
 @st.fragment(run_every=15)
 def show_live_price():
-    t_input = st.text_input("Enter Ticker (e.g. TATAMOTORS.NS, NIFTYBEES.NS)", value="TATAMOTORS.NS").upper()
+    t_input = st.text_input("Enter Ticker (e.g. TATAMOTORS.NS)", value="TATAMOTORS.NS").upper()
     if t_input:
         try:
             stock_data = yf.Ticker(t_input)
-            # Strategy 1: Try the fast info first
             live_p = stock_data.fast_info['last_price']
             
-            # Strategy 2: If fast_info returns 0 or None (common for some Indian stocks), use history
+            # Sunday Backup: if live price is 0 (market closed), get last Friday's close
             if live_p is None or live_p == 0:
                 hist = stock_data.history(period="1d")
                 if not hist.empty:
                     live_p = hist['Close'].iloc[-1]
             
             curr = stock_data.fast_info.get('currency', 'INR')
-            
-            if live_p and live_p > 0:
-                st.metric(label=f"Live Price: {t_input}", value=f"{curr} {live_p:.2f}")
-                return t_input, live_p
-            else:
-                st.warning(f"Data for {t_input} is currently flat or unavailable.")
-                
+            st.metric(label=f"Price: {t_input}", value=f"{curr} {live_p:.2f}")
+            return t_input, live_p
         except Exception as e:
-            st.error(f"Ticker {t_input} not found.")
+            st.error(f"Error fetching {t_input}: {e}")
     return None, None
 
-# --- NEW SECTION STARTS HERE ---
-# Make sure there is a blank line above this!
-st.header("📈 Live Market Watch") # This is your line 65
+# --- BREAK THE INDENTATION HERE ---
+# Everything below must be pushed all the way to the LEFT margin
 
-# Call the function and get the values
+st.header("📈 Live Market Watch") 
+
+# This line "calls" the function and saves the results for later use
 active_ticker, active_price = show_live_price()
 
-# --- MANUAL AUDIT FORM ---
 st.divider()
+
+# Now we build the audit form
 st.header("📊 Manual Stock Entry")
 col1, col2 = st.columns(2)
 
