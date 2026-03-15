@@ -1,6 +1,6 @@
 streamlit
 google-generativeai
-yfinance
+yfinance>=0.2.40
 pandas
 plotly
 gspread
