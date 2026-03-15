@@ -17,20 +17,22 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. GOOGLE SHEETS SETUP (The Secrets Way)
+# --- 2. GOOGLE SHEETS SETUP ---
 try:
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    
-    # CHANGE 1: Pull info from your Secrets box instead of a file
     creds_info = st.secrets["gcp_service_account"]
-    
-    # CHANGE 2: Use 'from_service_account_info' instead of '_file'
     creds = Credentials.from_service_account_info(creds_info, scopes=scopes)
-    
     client = gspread.authorize(creds)
     sheet = client.open("My_Stock_Audits").sheet1 
-    st.header("📊 New Stock Audit")
+    # The 'try' block ends here
+except Exception as e:
+    # This 'except' block MUST come before you start col1, col2
+    st.sidebar.error(f"Google Sheets Connection Error: {e}")
 
+# --- 3. LIVE MARKET WATCH & AUDIT FORM ---
+# This part MUST be outside (not indented) the try/except block
+st.header("📊 New Stock Audit")
+col1, col2 = st.columns(2)
 # Create two columns for a clean look
 col1, col2 = st.columns(2)
 
