@@ -60,9 +60,15 @@ st.markdown("### AI-Powered Equity Auditor for the Indian Market")
 # --- LIVE PRICE SECTION (Auto-refreshes) ---
 st.header("📈 Live Market Watch")
 
+# 1. The Heading goes first
+st.header("📈 Live Market Watch") 
+
+# 2. The Decorator goes second
 @st.fragment(run_every=15)
-# --- LIVE PRICE SECTION (With Retry Logic) ---
-st.header("📈 Live Market Watch")
+# 3. THE FUNCTION MUST BE RIGHT UNDER THE DECORATOR
+def show_live_price():
+    t_input = st.text_input("Enter Ticker", value="TATAMOTORS.NS").upper()
+    # ... (rest of your code)
 
 # --- LIVE PRICE SECTION ---
 @st.fragment(run_every=15)
