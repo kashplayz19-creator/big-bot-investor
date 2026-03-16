@@ -14,42 +14,72 @@ st.set_page_config(page_title="Nexus Invest | Pro Terminal", page_icon="📡", l
 # --- 2. PREMIUM FINTECH UI ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: white; }
-    [data-testid="stMetricValue"] { font-size: 28px; color: #00FFCC !important; }
+    # --- 2. PREMIUM FINTECH UI (V2: High-Contrast) ---
+st.markdown("""
+    <style>
+    /* Import high-end fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@500&display=swap');
+
+    /* Global Text Visibility */
+    .stApp { 
+        background-color: #0E1117; 
+        color: #E0E0E0 !important; /* Off-white for readability */
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Force Headers to be Pure White */
+    h1, h2, h3, p { 
+        color: #FFFFFF !important; 
+    }
+
+    /* Metric Labels (The small text above the price) */
+    [data-testid="stMetricLabel"] { 
+        color: #AAAAAA !important; 
+        font-size: 14px !important;
+    }
+
+    /* Metric Values (The numbers) */
+    [data-testid="stMetricValue"] { 
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 32px !important; 
+        color: #00FFCC !important; /* Neon Mint */
+    }
+
+    /* Glass Card Enhancements */
     .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 15px;
-        padding: 20px;
-        margin: 10px 0;
+        background: rgba(255, 255, 255, 0.07);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
     }
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
-    .stTabs [aria-selected="true"] { border-bottom: 2px solid #00FFCC !important; }
+
+    /* Table Visibility (For your Portfolio Tab) */
+    .stTable {
+        color: #E0E0E0 !important;
+        background-color: rgba(255, 255, 255, 0.02);
+        border-radius: 10px;
+    }
     
-    /* Fix for the 'Ghost Button' */
-    div.stButton > button:first-child {
-        background-color: #00FFCC !important;
-        color: #0E1117 !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-        border: none !important;
-        height: 3em !important;
-        width: 100% !important;
+    /* Input Boxes (Search Bar, etc.) */
+    input {
+        background-color: #1A1C23 !important;
+        color: white !important;
+        border: 1px solid #333 !important;
     }
-    div.stButton > button:hover {
-        background-color: #00d1a7 !important;
-        box-shadow: 0px 0px 15px rgba(0, 255, 204, 0.4);
+
+    /* Tab Text Color */
+    .stTabs [data-baseweb="tab"] p {
+        color: #AAAAAA !important;
+        font-weight: 600;
     }
-    .nexus-title {
-        font-size: 50px;
-        font-weight: 800;
-        background: linear-gradient(45deg, #00FFCC, #0099FF);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: 2px;
-        margin-bottom: -10px;
+    .stTabs [aria-selected="true"] p {
+        color: #00FFCC !important;
     }
+    </style>
+    """, unsafe_allow_html=True)
     </style>
     """, unsafe_allow_html=True)
 
