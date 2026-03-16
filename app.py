@@ -9,7 +9,7 @@ from datetime import datetime
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Nexus Invest | Pro Terminal", page_icon="📡", layout="wide")
 
-# --- 2. THE ULTIMATE "CARBON MINT" CSS ---
+# --- 2. THE ULTIMATE "CARBON MINT" CSS (UX HOOKS) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
@@ -51,7 +51,6 @@ st.markdown("""
     .mint-glow { color: #00FFC2; text-shadow: 0 0 10px rgba(0,255,194,0.4); font-weight: 800; }
     .big-stat { font-family: 'JetBrains Mono', monospace; font-size: 38px !important; font-weight: 800; }
     
-    /* CLEANER TABS */
     .stTabs [data-baseweb="tab"] { font-size: 16px; font-weight: 600; }
     .stTabs [aria-selected="true"] { color: #00FFC2 !important; border-bottom-color: #00FFC2 !important; }
 </style>
@@ -77,33 +76,48 @@ with col_left:
     
     st.markdown("##### 📝 AUDIT LOG")
     with st.container(border=True):
-        audit_t = st.text_input("Audit Ticker", "BEL.NS", key="audit_t")
+        audit_t = st.text_input("Audit Ticker", "BEL.NS")
         rsi_val = st.slider("RSI Level", 0, 100, 50)
         thesis = st.text_area("Trading Thesis", placeholder="Why this trade?", height=100)
         if st.button("LOG TO DATABASE", use_container_width=True):
-            st.toast("Logic saved to Audit Log!")
+            st.toast("Logic saved locally!")
 
 with col_mid:
     st.markdown("<h1 style='text-align: center; letter-spacing: 5px;'>NEXUS <span class='mint-glow'>INVEST</span></h1>", unsafe_allow_html=True)
-    ticker = st.text_input("ENTER ACTIVE TICKER", value="HDFCBANK.NS").upper()
     
-    df = yf.download(ticker, period="1mo", interval="1d")
-    if not df.empty:
-        # Columns in new yfinance are multi-index, cleaning here
-        if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
-        price = df['Close'].iloc[-1]
-        change = price - df['Close'].iloc[-2]
+    # --- UNIVERSAL SEARCH BAR ---
+    query = st.text_input("🔍 SEARCH (Stock, Mutual Fund, or Index)", "HDFCBANK.NS").upper()
+    
+    try:
+        data = yf.Ticker(query)
+        df = data.history(period="1mo")
         
-        st.markdown(f"<div style='text-align:center;'><span class='big-stat'>₹{price:,.2f}</span><br><span class='{'mint-glow' if change >=0 else 'red-glow'}'>{'▲' if change >=0 else '▼'} {abs(change):.2f}</span></div>", unsafe_allow_html=True)
-        
-        fig = go.Figure(data=[go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'])])
-        fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=350, margin=dict(l=0,r=0,b=0,t=0), xaxis_rangeslider_visible=False)
-        st.plotly_chart(fig, use_container_width=True)
+        if not df.empty:
+            price = df['Close'].iloc[-1]
+            change = price - df['Close'].iloc[-2]
+            st.markdown(f"<div style='text-align:center;'><span class='big-stat'>₹{price:,.2f}</span><br><span class='{'mint-glow' if change >=0 else 'red-glow'}'>{'▲' if change >=0 else '▼'} {abs(change):.2f} Today</span></div>", unsafe_allow_html=True)
+            
+            # Smart Chart: Line chart for Funds, Candlestick for Stocks
+            fig = go.Figure()
+            if "MUTUAL" in str(data.info).upper() or "BEES" in query:
+                fig.add_trace(go.Scatter(x=df.index, y=df['Close'], line=dict(color='#00FFC2', width=2), fill='tozeroy'))
+            else:
+                fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close']))
+            
+            fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=350, margin=dict(l=0,r=0,b=0,t=0), xaxis_rangeslider_visible=False)
+            st.plotly_chart(fig, use_container_width=True)
+    except:
+        st.error("Ticker not found. Try adding .NS for NSE stocks.")
 
 with col_right:
-    # Net Worth Calculation
-    total_val = sum([yf.Ticker(s['Ticker']).fast_info['last_price'] * s['Shares'] for s in st.session_state.portfolio])
-    
+    # Portfolio Calculation
+    total_val = 0
+    for s in st.session_state.portfolio:
+        try:
+            cur = yf.Ticker(s['Ticker']).fast_info['last_price']
+            total_val += (cur * s['Shares'])
+        except: pass
+
     st.markdown(f"""
     <div class='nexus-card' style='text-align: center; border-bottom: 3px solid #00FFC2;'>
         <small style='color:#808080'>NET WORTH</small><br>
@@ -113,30 +127,11 @@ with col_right:
     
     st.markdown("##### 🤖 STRATEGY CHAT")
     with st.container(border=True):
-        st.write(f"<small>Analyzing {ticker}...</small>", unsafe_allow_html=True)
-        prompt = st.chat_input("Next move?")
-        if prompt:
-            st.write(f"**Nexus AI:** Bullish divergence spotted on {ticker}. RSI is healthy at {rsi_val}.")
+        st.chat_input("Next move?")
+        st.write("<small>AI Analysis: Assets are holding strong above support levels.</small>", unsafe_allow_html=True)
 
-# --- 5. BOTTOM ASSET VIEW ---
+# --- 5. BOTTOM ASSET VAULT ---
 st.write("---")
 st.markdown("### 📊 ACTIVE ASSET VAULT")
-cols = st.columns(len(st.session_state.portfolio))
-for i, s in enumerate(st.session_state.portfolio):
-    with cols[i]:
-        st.markdown(f"""<div class='nexus-card'>
-            <strong>{s['Ticker']}</strong><br>
-            <small>{s['Shares']} Shares</small><br>
-            <span class='mint-glow'>₹{s['Buy Price']} Avg</span>
-        </div>""", unsafe_allow_html=True)
-
-# --- 6. TICKER TAPE (The Final Polish) ---
-st.markdown(f"""
-    <div class="ticker-wrap">
-        <div class="ticker-item">HDFCBANK.NS: ₹{yf.Ticker('HDFCBANK.NS').fast_info['last_price']:.2f}</div>
-        <div class="ticker-item">NIFTYBEES.NS: ₹{yf.Ticker('NIFTYBEES.NS').fast_info['last_price']:.2f}</div>
-        <div class="ticker-item">BEL.NS: ₹{yf.Ticker('BEL.NS').fast_info['last_price']:.2f}</div>
-        <div class="ticker-item">RELIANCE.NS: ₹{yf.Ticker('RELIANCE.NS').fast_info['last_price']:.2f}</div>
-        <div class="ticker-item">MARKET SENTIMENT: BULLISH</div>
-    </div>
-""", unsafe_allow_html=True)
+asset_cols = st.columns(len(st.session_state.portfolio))
+for i, s in enumerate(st.session_state.portfolio
