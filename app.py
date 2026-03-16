@@ -119,6 +119,7 @@ with tab2:
         st.write(f"Asset Split: ETFs {(etf_count/total_shares)*100:.1f}% | Stocks {(stock_count/total_shares)*100:.1f}%")
         st.progress(etf_count/total_shares)
 
+    # --- ADD INVESTMENT ---
     with st.popover("➕ Add Investment"):
         t_ticker = st.text_input("Ticker", "RELIANCE.NS").upper()
         col1, col2 = st.columns(2)
@@ -141,37 +142,54 @@ with tab2:
                 day_gain = (current_p - prev_p) * item['Shares']
                 total_val = current_p * item['Shares'] 
                 day_gain_pct = ((current_p - prev_p) / prev_p) * 100
+                total_pl = (current_p - item['Buy Price']) * item['Shares']
+                total_pl_pct = ((current_p - item['Buy Price']) / item['Buy Price']) * 100
                 
-                # Setup Logo or Fallback
+                # --- SENSITIVE LOGO LOOKUP ---
                 ticker_clean = item['Ticker'].split('.')[0]
-                logo_url = f"https://cdn.tickerlogos.com/logos/{ticker_clean.lower()}.com"
+                # We map common NSE tickers to their actual corporate domain for logos
+                logo_domain_map = {
+                    "HDFCBANK": "hdfcbank.com",
+                    "NIFTYBEES": "niftyindices.com", # Alternative fallback
+                    "BEL": "bel-india.in",
+                }
+                logo_domain = logo_domain_map.get(ticker_clean, f"{ticker_clean.lower()}.com")
+                logo_url = f"https://logo.clearbit.com/{logo_domain}"
                 
-                # HTML Card
+                # --- REFACTORED CLEAN GRID LAYOUT ---
                 st.markdown(f"""
-                <div class="g-card" style="display: flex; align-items: center; justify-content: space-between;">
+                <div class="g-card" style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; gap: 20px;">
+                    
                     <div style="display: flex; align-items: center;">
-                        <div style="width: 40px; height: 40px; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
-                            <img src="{logo_url}" 
-                                 width="40" 
-                                 style="border-radius: 8px;" 
-                                 onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"width:40px; height:40px; border-radius:8px; background:#f0f2f6; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368;\">{ticker_clean[0]}</div>';">
-                        </div>
+                        <img src="{logo_url}" width="40" height="40" style="border-radius: 8px; margin-right: 15px; border: 1px solid #DADCE0;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"width:40px; height:40px; border-radius:8px; background:#f0f2f6; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368;\">{ticker_clean[0]}</div>';">
                         <div>
                             <strong>{ticker_clean}</strong><br>
-                            <small style="color: #70757A;">Qty: {item['Shares']} | Avg: ₹{item['Buy Price']:.2f}</small>
+                            <small style="color: #70757A;">Qty: {item['Shares']}</small>
                         </div>
                     </div>
+                    
+                    <div style="text-align: middle;">
+                        <span style="color: #70757A;">Current: </span><strong>₹{current_p:.2f}</strong><br>
+                        <small style="color: #70757A;">Avg: ₹{item['Buy Price']:.2f}</small>
+                    </div>
+                    
                     <div style="text-align: right;">
-                        <strong>₹{total_val:,.2f}</strong><br>
-                        <span class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}">
-                            {'+' if day_gain >=0 else ''}{day_gain:,.2f} ({day_gain_pct:+.2f}%)
+                        <span style="font-size: 18px; font-weight: 600;">₹{total_val:,.2f}</span><br>
+                        
+                        <span class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}" style="font-size: 14px;">
+                            Day: {'+' if day_gain >=0 else ''}{day_gain:,.2f} ({day_gain_pct:+.2f}%)
+                        </span><br>
+                        
+                        <span class="{'gain-pos' if total_pl >= 0 else 'gain-neg'}" style="font-size: 12px; font-style: italic;">
+                            P&L: {'+' if total_pl >=0 else ''}{total_pl:,.2f} ({total_pl_pct:+.2f}%)
                         </span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+            else:
+                st.warning(f"Data not available for {item['Ticker']}")
         except Exception as e:
-            st.error(f"Error loading {item['Ticker']}")
-
+            st.error(f"Error loading {item['Ticker']}: {e}")
 # --- TAB 3: AI AUDIT LOG ---
 with tab3:
     st.header("📋 Audit Stock Analysis")
