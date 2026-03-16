@@ -33,6 +33,23 @@ st.markdown("""
         border-radius: 4px 4px 0px 0px; color: white;
     }
     .stTabs [aria-selected="true"] { border-bottom: 2px solid #00FFCC !important; }
+    /* Fix for the 'Ghost Button' */
+    div.stButton > button:first-child {
+        background-color: #00FFCC !important; /* Neon Mint */
+        color: #0E1117 !important; /* Dark Text */
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        border: none !important;
+        height: 3em !important;
+        width: 100% !important;
+    }
+
+    /* Hover effect to make it feel reactive */
+    div.stButton > button:hover {
+        background-color: #00d1a7 !important;
+        color: #0E1117 !important;
+        box-shadow: 0px 0px 15px rgba(0, 255, 204, 0.4);
+    }
     </style>
     """, unsafe_allow_html=True)
 
