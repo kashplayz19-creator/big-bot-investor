@@ -145,3 +145,70 @@ with tab2:
         except Exception as e:
             st.warning(f"Could not load {t}")
             continue
+# --- TAB 3: AI AUDIT LOG ---
+with tab3:
+    st.header("📋 Audit Stock Analysis")
+    st.markdown("Use this to log your entry/exit logic to Google Sheets.")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        m_ticker = st.text_input("Audit Ticker", value=ticker_input)
+        action = st.selectbox("Signal", ["BUY", "SELL", "WATCHLIST"])
+    with c2:
+        # We use the current_price from Tab 1 as a default
+        rsi = st.slider("RSI Level (Strength)", 0, 100, 50)
+        support = st.number_input("Support/Entry Level", value=float(current_price) * 0.95 if current_price else 0.0)
+    
+    notes = st.text_area("Audit Reasoning", placeholder="Why are we making this move?")
+    
+    if st.button("LOG AUDIT TO NEXUS DATABASE"):
+        try:
+            # Preparing the row for Google Sheets
+            row = [
+                datetime.now().strftime("%Y-%m-%d %H:%M"), 
+                m_ticker, 
+                action, 
+                current_price, 
+                rsi, 
+                support, 
+                notes
+            ]
+            sheet.append_row(row)
+            st.success(f"Successfully logged {m_ticker} to My_Stock_Audits!")
+            st.balloons()
+        except Exception as e:
+            st.error(f"Google Sheets Error: {e}")
+
+# --- TAB 4: STRATEGY CHAT ---
+with tab4:
+    st.header("🤖 Nexus Invest Intelligence")
+    st.info("AI Analysis specifically for the Indian Market (NSE/BSE).")
+
+    # Chat UI Logic
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Display past messages
+    for m in st.session_state.messages:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+    
+    # User Input
+    if prompt := st.chat_input("Ask Nexus Invest about a stock or strategy..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+            
+        with st.chat_message("assistant"):
+            # We give the AI 'Context' so it knows what stock you are currently looking at
+            ai_context = f"""
+            You are Nexus Invest Pro. The user is currently looking at {ticker_input} 
+            trading at ₹{current_price:.2f}. 
+            Answer their question using technical analysis principles: {prompt}
+            """
+            try:
+                response = model_pro.generate_content(ai_context)
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"AI Connection Error: {e}")
