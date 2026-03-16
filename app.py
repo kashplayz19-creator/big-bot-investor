@@ -110,56 +110,62 @@ with tab2:
     st.header("Portfolio")
     
     # --- ASSET BAR ---
+    # We check if 'BEES' is in the ticker to separate ETFs from Stocks
     etf_count = sum([item['Shares'] for item in st.session_state.portfolio if "BEES" in item['Ticker']])
     stock_count = sum([item['Shares'] for item in st.session_state.portfolio if "BEES" not in item['Ticker']])
-    total = etf_count + stock_count
+    total_shares = etf_count + stock_count
     
-    if total > 0:
-        st.write(f"Asset Split: ETFs { (etf_count/total)*100:.1f}% | Stocks {(stock_count/total)*100:.1f}%")
-        st.progress((etf_count/total))
+    if total_shares > 0:
+        st.write(f"Asset Split: ETFs {(etf_count/total_shares)*100:.1f}% | Stocks {(stock_count/total_shares)*100:.1f}%")
+        st.progress(etf_count/total_shares)
 
-    # --- SUMMARY CARD ---
-    # (Calculated in loop below)
-    
     # --- ADD INVESTMENT ---
     with st.popover("➕ Add Investment"):
         t_ticker = st.text_input("Ticker", "RELIANCE.NS").upper()
         col1, col2 = st.columns(2)
-        t_shares = col1.number_input("Shares", 1)
-        t_price = col2.number_input("Buy Price", 100.0)
+        t_shares = col1.number_input("Shares", min_value=1, value=1)
+        t_price = col2.number_input("Buy Price", min_value=0.1, value=100.0)
         if st.button("Confirm"):
             st.session_state.portfolio.append({"Ticker": t_ticker, "Shares": t_shares, "Buy Price": t_price})
             st.rerun()
 
     # --- PORTFOLIO LIST ---
     for item in st.session_state.portfolio:
-        stock = yf.Ticker(item['Ticker'])
-        hist = stock.history(period="2d")
-        current_p = hist['Close'].iloc[-1]
-        prev_p = hist['Close'].iloc[-2]
-        
-        day_gain = (current_p - prev_p) * item['Shares']
-        total_val = current_p * item['Shares']
-        
-        # Display as a clean row
-        with st.container():
-            st.markdown(f"""
-            <div class="g-card" style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center;">
-                    <img src="https://logo.clearbit.com/{item['Ticker'].split('.')[0].lower()}.com" width="40" style="border-radius: 50%; margin-right: 15px;">
-                    <div>
-                        <strong>{item['Ticker'].split('.')[0]}</strong><br>
-                        <small style="color: #70757A;">Qty: {item['Shares']} | Avg: ₹{item['Buy Price']:.2f}</small>
+        try:
+            stock = yf.Ticker(item['Ticker'])
+            hist = stock.history(period="2d")
+            
+            if not hist.empty and len(hist) >= 2:
+                current_p = hist['Close'].iloc[-1]
+                prev_p = hist['Close'].iloc[-2]
+                
+                day_gain = (current_p - prev_p) * item['Shares']
+                # FIXED: Using total_val consistently to avoid NameError
+                total_val = current_p * item['Shares'] 
+                day_gain_pct = ((current_p - prev_p) / prev_p) * 100
+                
+                # Display as a clean Google Finance Card
+                st.markdown(f"""
+                <div class="g-card" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center;">
+                        <img src="https://logo.clearbit.com/{item['Ticker'].split('.')[0].lower()}.com" width="40" style="border-radius: 50%; margin-right: 15px;">
+                        <div>
+                            <strong>{item['Ticker'].split('.')[0]}</strong><br>
+                            <small style="color: #70757A;">Qty: {item['Shares']} | Avg: ₹{item['Buy Price']:.2f}</small>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>₹{total_val:,.2f}</strong><br>
+                        <span class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}">
+                            {'+' if day_gain >=0 else ''}{day_gain:,.2f} ({day_gain_pct:+.2f}%)
+                        </span>
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <strong>₹{current_val:,.2f}</strong><br>
-                    <span class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}">
-                        {'+' if day_gain >=0 else ''}{day_gain:,.2f} ({((current_p-prev_p)/prev_p)*100:.2f}%)
-                    </span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            else:
+                st.warning(f"Data not available for {item['Ticker']}")
+        except Exception as e:
+            st.error(f"Error loading {item['Ticker']}: {e}")
 # --- TAB 3: AI AUDIT LOG ---
 with tab3:
     st.header("📋 Audit Stock Analysis")
