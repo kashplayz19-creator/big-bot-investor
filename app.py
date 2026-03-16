@@ -73,7 +73,6 @@ st.markdown("""
 
 # --- 3. BACKEND & PORTFOLIO DATA ---
 if "portfolio" not in st.session_state:
-    # Starting with your current known holdings
     st.session_state.portfolio = [
         {"Ticker": "HDFCBANK.NS", "Shares": 5, "Buy Price": 833.95, "Date": "2026-03-12"},
         {"Ticker": "NIFTYBEES.NS", "Shares": 22, "Buy Price": 269.20, "Date": "2026-03-12"},
