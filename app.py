@@ -11,50 +11,33 @@ from datetime import datetime
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Nexus Invest | Pro Terminal", page_icon="📡", layout="wide")
 
-# --- 2. PREMIUM FINTECH UI (Google Finance Light Mode) ---
+# --- 2. PREMIUM FINTECH UI ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    
     .stApp { background-color: #FFFFFF; color: #202124; font-family: 'Inter', sans-serif; }
-    
-    /* Google Finance Card Style */
-    .g-card {
-        background: #FFFFFF;
-        border: 1px solid #DADCE0;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 12px;
-    }
-    
-    /* Typography */
+    .g-card { background: #FFFFFF; border: 1px solid #DADCE0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
     h1, h2, h3 { color: #202124 !important; font-weight: 600 !important; }
-    .metric-value { font-size: 24px; font-weight: 600; }
-    .gain-pos { color: #188038; font-weight: 500; } /* Green */
-    .gain-neg { color: #D93025; font-weight: 500; } /* Red */
-    
-    /* Clean Input Fields */
+    .gain-pos { color: #188038; font-weight: 500; }
+    .gain-neg { color: #D93025; font-weight: 500; }
     input { border: 1px solid #DADCE0 !important; border-radius: 4px !important; }
-    
-    /* Tab Styling */
     .stTabs [data-baseweb="tab"] { font-weight: 600; color: #70757A; }
     .stTabs [aria-selected="true"] { color: #1A73E8 !important; border-bottom-color: #1A73E8 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. BACKEND & PORTFOLIO DATA ---
+# --- 3. BACKEND & DATA ---
 if "portfolio" not in st.session_state:
     st.session_state.portfolio = [
-        {"Ticker": "HDFCBANK.NS", "Shares": 5, "Buy Price": 833.95, "Date": "2026-03-12"},
-        {"Ticker": "NIFTYBEES.NS", "Shares": 22, "Buy Price": 269.20, "Date": "2026-03-12"},
+        {"Ticker": "HDFCBANK.NS", "Shares": 5, "Buy Price": 833.95},
+        {"Ticker": "NIFTYBEES.NS", "Shares": 22, "Buy Price": 269.20},
     ]
 
 try:
     creds_info = st.secrets["gcp_service_account"]
     creds = Credentials.from_service_account_info(creds_info, scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"])
     sheet = gspread.authorize(creds).open("My_Stock_Audits").sheet1 
-except Exception as e:
-    st.sidebar.error(f"Sheets Connection Error: {e}")
+except: st.sidebar.warning("Sheets not connected")
 
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -64,157 +47,131 @@ if "GEMINI_API_KEY" in st.secrets:
 st.title("📡 NEXUS INVEST")
 st.markdown("##### Advanced Equity Intelligence Terminal")
 
-# --- 5. NAVIGATION TABS ---
+# --- 5. TABS ---
 tab1, tab2, tab3, tab4 = st.tabs(["⚡ LIVE TERMINAL", "📊 YOUR PORTFOLIO", "🔍 AI AUDIT LOG", "🤖 STRATEGY CHAT"])
 
 with tab1:
     col_a, col_b = st.columns([1, 2])
-    
     with col_a:
         ticker_input = st.text_input("Enter NSE Ticker", value="HDFCBANK.NS").upper()
-        
         @st.fragment(run_every=15)
-        def show_price_card(ticker):
+        def show_price():
             try:
-                data = yf.Ticker(ticker)
-                price = data.fast_info.get('last_price') or data.history(period="1d")['Close'].iloc[-1]
-                st.metric(label=f"Current Price", value=f"₹{price:.2f}")
-                return price
-            except:
-                st.error("Ticker not found")
-                return 0
-
-        current_price = show_price_card(ticker_input)
-    
+                p = yf.Ticker(ticker_input).fast_info['last_price']
+                st.metric("Current Price", f"₹{p:.2f}")
+                return p
+            except: return 0
+        current_price = show_price()
     with col_b:
-        chart_data = yf.download(ticker_input, period="1mo", interval="1d")
-        if not chart_data.empty:
-            if isinstance(chart_data.columns, pd.MultiIndex): 
-                chart_data.columns = chart_data.columns.get_level_values(0)
-            
-            fig = go.Figure(data=[go.Candlestick(
-                x=chart_data.index, open=chart_data['Open'], 
-                high=chart_data['High'], low=chart_data['Low'], 
-                close=chart_data['Close'], name="Price"
-            )])
-            
-            fig.update_layout(
-                template="plotly_white", # Light mode chart
-                xaxis_rangeslider_visible=False, height=350,
-                margin=dict(l=0,r=0,b=0,t=0),
-                xaxis=dict(tickformat="%d %b", type="date"),
-                yaxis=dict(title="Price (₹)")
-            )
-            st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
+        df = yf.download(ticker_input, period="1mo", interval="1d")
+        if not df.empty:
+            if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+            fig = go.Figure(data=[go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'])])
+            fig.update_layout(template="plotly_white", height=350, margin=dict(l=0,r=0,b=0,t=0), xaxis_rangeslider_visible=False)
+            st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
-    st.header("Portfolio")
-    
-    # --- ASSET BAR ---
-    etf_vals = sum([item['Shares'] * (yf.Ticker(item['Ticker']).fast_info.get('last_price') or 1) for item in st.session_state.portfolio if "BEES" in item['Ticker']])
-    stock_vals = sum([item['Shares'] * (yf.Ticker(item['Ticker']).fast_info.get('last_price') or 1) for item in st.session_state.portfolio if "BEES" not in item['Ticker']])
-    total_p_val = etf_vals + stock_vals
-    
-    if total_p_val > 0:
-        st.write(f"Asset Split: ETFs {(etf_vals/total_p_val)*100:.1f}% | Stocks {(stock_vals/total_p_val)*100:.1f}%")
-        st.progress(etf_vals/total_p_val)
+    # --- PORTFOLIO LOGIC ---
+    total_market_val = 0
+    total_day_gain = 0
+    total_invested = 0
+    portfolio_data = []
 
-    # --- ADD INVESTMENT ---
+    for item in st.session_state.portfolio:
+        t = yf.Ticker(item['Ticker'])
+        h = t.history(period="2d")
+        if not h.empty and len(h) >= 2:
+            cur = h['Close'].iloc[-1]
+            prev = h['Close'].iloc[-2]
+            val = cur * item['Shares']
+            dg = (cur - prev) * item['Shares']
+            inv = item['Buy Price'] * item['Shares']
+            
+            total_market_val += val
+            total_day_gain += dg
+            total_invested += inv
+            portfolio_data.append({**item, "cur": cur, "val": val, "dg": dg, "dgp": ((cur-prev)/prev)*100})
+
+    # --- TOP HIGHLIGHTS CARD ---
+    total_gain = total_market_val - total_invested
+    tg_p = (total_gain / total_invested * 100) if total_invested > 0 else 0
+    dg_p = (total_day_gain / (total_market_val - total_day_gain) * 100) if (total_market_val - total_day_gain) > 0 else 0
+
+    st.markdown(f"""
+    <div class="g-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: #e6f4ea; padding: 15px; border-radius: 8px;">
+            <small style="color: #188038;">DAY GAIN</small>
+            <div style="font-size: 24px; font-weight: 600; color: #188038;">{'+' if total_day_gain >=0 else ''}₹{total_day_gain:,.2f}</div>
+            <div style="color: #188038;">↑ {dg_p:.2f}%</div>
+        </div>
+        <div style="background: #fce8e6; padding: 15px; border-radius: 8px;">
+            <small style="color: #d93025;">TOTAL GAIN</small>
+            <div style="font-size: 24px; font-weight: 600; color: #d93025;">{'+' if total_gain >=0 else ''}₹{total_gain:,.2f}</div>
+            <div style="color: #d93025;">↓ {abs(tg_p):.2f}%</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     with st.popover("➕ Add Investment"):
-        t_ticker = st.text_input("Ticker", "RELIANCE.NS").upper()
-        col1, col2 = st.columns(2)
-        t_shares = col1.number_input("Shares", min_value=1, value=1)
-        t_price = col2.number_input("Buy Price", min_value=0.1, value=100.0)
+        nt = st.text_input("Ticker", "RELIANCE.NS").upper()
+        ns = st.number_input("Shares", 1)
+        np = st.number_input("Price", 100.0)
         if st.button("Confirm"):
-            st.session_state.portfolio.append({"Ticker": t_ticker, "Shares": t_shares, "Buy Price": t_price})
+            st.session_state.portfolio.append({"Ticker": nt, "Shares": ns, "Buy Price": np})
             st.rerun()
 
-    # --- PORTFOLIO LIST ---
-    for item in st.session_state.portfolio:
-        try:
-            stock = yf.Ticker(item['Ticker'])
-            hist = stock.history(period="2d")
-            
-            if not hist.empty and len(hist) >= 2:
-                current_p = hist['Close'].iloc[-1]
-                prev_p = hist['Close'].iloc[-2]
-                
-                day_gain = (current_p - prev_p) * item['Shares']
-                total_val = current_p * item['Shares'] 
-                day_gain_pct = ((current_p - prev_p) / prev_p) * 100
-                
-                ticker_clean = item['Ticker'].split('.')[0]
-                # Mapping specifically for HDFC Bank and others to get actual logos
-                domain_map = {"HDFCBANK": "hdfcbank.com", "NIFTYBEES": "niftyindices.com", "BEL": "bel-india.in"}
-                logo_domain = domain_map.get(ticker_clean, f"{ticker_clean.lower()}.com")
-                logo_url = f"https://logo.clearbit.com/{logo_domain}"
-
-                # THIS BLOCK MUST HAVE NO EXTRA INDENTATION INSIDE THE F-STRING
-                st.markdown(f"""
-<div class="g-card" style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #DADCE0; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+    # --- STOCK LIST ---
+    for s in portfolio_data:
+        tc = s['Ticker'].split('.')[0]
+        d_map = {"HDFCBANK": "hdfcbank.com", "NIFTYBEES": "niftyindices.com"}
+        l_url = f"https://logo.clearbit.com/{d_map.get(tc, tc.lower()+'.com')}"
+        
+        st.markdown(f"""
+<div class="g-card" style="display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; align-items: center; flex: 1;">
-        <img src="{logo_url}" width="40" height="40" style="border-radius: 4px; margin-right: 12px; border: 1px solid #f0f0f0;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={ticker_clean}&background=f0f2f6&color=5f6368&bold=true';">
+        <img src="{l_url}" width="40" height="40" style="border-radius: 4px; margin-right: 12px; border: 1px solid #f0f0f0;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={tc}&background=f0f2f6&color=5f6368&bold=true';">
         <div>
-            <div style="font-weight: 600; color: #202124;">{ticker_clean}</div>
-            <div style="font-size: 12px; color: #70757A;">{item['Shares']} shares • ₹{item['Buy Price']:.2f} avg</div>
+            <div style="font-weight: 600;">{tc}</div>
+            <div style="font-size: 12px; color: #70757A;">{s['Shares']} shares • ₹{s['Buy Price']:.2f} avg</div>
         </div>
     </div>
     <div style="text-align: center; flex: 1;">
         <div style="font-size: 14px; color: #70757A;">Price</div>
-        <div style="font-weight: 500;">₹{current_p:,.2f}</div>
+        <div style="font-weight: 500;">₹{s['cur']:,.2f}</div>
     </div>
     <div style="text-align: right; flex: 1;">
-        <div style="font-weight: 600; font-size: 16px;">₹{total_val:,.2f}</div>
-        <div class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}" style="font-size: 13px;">
-            {'+' if day_gain >= 0 else ''}{day_gain:,.2f} ({day_gain_pct:+.2f}%)
+        <div style="font-weight: 600; font-size: 16px;">₹{s['val']:,.2f}</div>
+        <div class="{'gain-pos' if s['dg'] >= 0 else 'gain-neg'}" style="font-size: 13px;">
+            {'+' if s['dg'] >= 0 else ''}{s['dg']:,.2f} ({s['dgp']:+.2f}%)
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Error loading {item['Ticker']}")
-# --- TAB 3: AI AUDIT LOG ---
+
 with tab3:
     st.header("📋 Audit Stock Analysis")
     c1, c2 = st.columns(2)
     with c1:
-        m_ticker = st.text_input("Audit Ticker", value=ticker_input)
-        action = st.selectbox("Signal", ["BUY", "SELL", "WATCHLIST"])
+        at = st.text_input("Audit Ticker", value=ticker_input)
+        act = st.selectbox("Signal", ["BUY", "SELL", "WATCHLIST"])
     with c2:
-        rsi = st.slider("RSI Level (Strength)", 0, 100, 50)
-        support = st.number_input("Support/Entry Level", value=float(current_price) * 0.95 if current_price else 0.0)
-    
-    notes = st.text_area("Audit Reasoning")
-    if st.button("LOG AUDIT TO NEXUS DATABASE"):
+        rsi = st.slider("RSI", 0, 100, 50)
+        sup = st.number_input("Support", value=float(current_price)*0.95 if current_price else 0.0)
+    if st.button("LOG AUDIT"):
         try:
-            row = [datetime.now().strftime("%Y-%m-%d %H:%M"), m_ticker, action, current_price, rsi, support, notes]
-            sheet.append_row(row)
-            st.success("Successfully logged!")
-            st.balloons()
+            sheet.append_row([datetime.now().strftime("%Y-%m-%d %H:%M"), at, act, current_price, rsi, sup, "Logged from Nexus"])
+            st.success("Logged!")
         except: st.error("Sheets Error")
 
-# --- TAB 4: STRATEGY CHAT ---
 with tab4:
-    st.header("🤖 Nexus Strategy Intelligence")
-    col_chat, col_news = st.columns([2, 1])
-    with col_chat:
-        if "messages" not in st.session_state: st.session_state.messages = []
-        for m in st.session_state.messages:
-            with st.chat_message(m["role"]): st.markdown(m["content"])
-        
-        if prompt := st.chat_input("Analyze market sentiment..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"): st.markdown(prompt)
-            with st.chat_message("assistant"):
-                ai_context = f"Analyze: {prompt}. Focus on {ticker_input}."
-                response = model_pro.generate_content(ai_context)
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-
-    with col_news:
-        st.subheader("📰 Market Radar")
-        try:
-            news_stock = yf.Ticker(ticker_input)
-            for article in news_stock.news[:5]:
-                st.markdown(f"**{article['title']}** [Read]({article['link']}) \n---")
-        except: st.write("No recent news found.")
+    st.header("🤖 Strategy Chat")
+    if "messages" not in st.session_state: st.session_state.messages = []
+    for m in st.session_state.messages:
+        with st.chat_message(m["role"]): st.markdown(m["content"])
+    if p := st.chat_input("Ask Nexus..."):
+        st.session_state.messages.append({"role": "user", "content": p})
+        with st.chat_message("user"): st.markdown(p)
+        with st.chat_message("assistant"):
+            r = model_pro.generate_content(f"Market focus: {ticker_input}. {p}").text
+            st.markdown(r)
+            st.session_state.messages.append({"role": "assistant", "content": r})
