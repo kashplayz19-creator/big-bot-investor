@@ -129,4 +129,19 @@ with tab2:
     total_value = 0
     portfolio_rows = []
 
-    for i, (
+    # Clean, single-line loop to avoid the SyntaxError
+    for i, (t, info) in enumerate(PORTFOLIO_DATA.items()):
+        try:
+            stock = yf.Ticker(t)
+            curr = stock.fast_info.get('last_price') or stock.history(period="1d")['Close'].iloc[-1]
+            val = curr * info['shares']
+            total_value += val
+            p_diff = ((curr - info['buy_price']) / info['buy_price']) * 100
+            
+            with p_cols[i]:
+                st.metric(label=t.split('.')[0], value=f"₹{val:,.0f}", delta=f"{p_diff:.2f}%")
+            
+            portfolio_rows.append({"Ticker": t.split('.')[0], "Value": val})
+        except Exception as e:
+            st.warning(f"Could not load {t}")
+            continue
