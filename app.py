@@ -121,14 +121,18 @@ with tab2:
             st.error(f"Failed: {e}")
 
 with tab3:
-st.header("🤖 Nexus Invest Intelligence")
-if "messages" not in st.session_state: st.session_state.messages = []
+    st.header("🤖 Nexus Invest Intelligence") # <--- Indent this!
+    if "messages" not in st.session_state: 
+        st.session_state.messages = []
+    
     for m in st.session_state.messages:
-        with st.chat_message(m["role"]): st.markdown(m["content"])
+        with st.chat_message(m["role"]): 
+            st.markdown(m["content"])
     
     if prompt := st.chat_input("Ask about market trends..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
+        with st.chat_message("user"): 
+            st.markdown(prompt)
         with st.chat_message("assistant"):
             response = model_pro.generate_content(prompt)
             st.markdown(response.text)
