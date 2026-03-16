@@ -75,9 +75,8 @@ st.markdown("""
 if "portfolio" not in st.session_state:
     # Starting with your current known holdings
     st.session_state.portfolio = [
-        {"Ticker": "HDFCBANK.NS", "Shares": 3, "Buy Price": 1388.0, "Date": "2026-03-12"},
-        {"Ticker": "NIFTYBEES.NS", "Shares": 25, "Buy Price": 235.9, "Date": "2026-03-12"},
-        {"Ticker": "BEL.NS", "Shares": 5, "Buy Price": 440.0, "Date": "2026-03-13"}
+        {"Ticker": "HDFCBANK.NS", "Shares": 5, "Buy Price": 833.95, "Date": "2026-03-12"},
+        {"Ticker": "NIFTYBEES.NS", "Shares": 22, "Buy Price": ₹269.20, "Date": "2026-03-12"},
     ]
 
 try:
