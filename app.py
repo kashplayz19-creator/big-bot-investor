@@ -76,16 +76,31 @@ with tab1:
         
         # LIVE PRICE FRAGMENT
         @st.fragment(run_every=15)
+      @st.fragment(run_every=15)
         def show_price_card(ticker):
             try:
                 data = yf.Ticker(ticker)
-                price = data.fast_info['last_price']
+                # Strategy 1: Fast Info
+                price = data.fast_info.get('last_price')
+                
+                # Strategy 2: If Strategy 1 fails, try regular info
                 if price is None or price == 0:
-                    price = data.history(period="1d")['Close'].iloc[-1]
-                st.metric(label=f"Current Price", value=f"₹{price:.2f}")
-                return price
-            except:
-                st.error("Ticker not found")
+                    price = data.info.get('regularMarketPrice')
+                
+                # Strategy 3: If still nothing, grab the very last 1-minute candle
+                if price is None or price == 0:
+                    hist = data.history(period="1d", interval="1m")
+                    if not hist.empty:
+                        price = hist['Close'].iloc[-1]
+                
+                if price and price > 0:
+                    st.metric(label=f"Current Price", value=f"₹{price:.2f}")
+                    return price
+                else:
+                    st.error(f"Waiting for {ticker} data...")
+                    return 0
+            except Exception as e:
+                st.error(f"Connection Error: {e}")
                 return 0
 
         current_price = show_price_card(ticker_input)
