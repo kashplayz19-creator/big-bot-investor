@@ -14,62 +14,29 @@ st.set_page_config(page_title="Nexus Invest | Pro Terminal", page_icon="📡", l
 # --- 2. PREMIUM FINTECH UI (High-Contrast V2) ---
 st.markdown("""
     <style>
-    /* Import high-end fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@500&display=swap');
-
-    /* Global Text Visibility */
-    .stApp { 
-        background-color: #0E1117; 
-        color: #E0E0E0 !important; 
-        font-family: 'Inter', sans-serif;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    
+    .stApp { background-color: #FFFFFF; color: #202124; font-family: 'Inter', sans-serif; }
+    
+    /* Google Finance Card Style */
+    .g-card {
+        background: #FFFFFF;
+        border: 1px solid #DADCE0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
     }
-
-    /* Force Headers to be Pure White */
-    h1, h2, h3, p { 
-        color: #FFFFFF !important; 
-    }
-
-    /* Metric Labels */
-    [data-testid="stMetricLabel"] { 
-        color: #AAAAAA !important; 
-        font-size: 14px !important;
-    }
-
-    /* Metric Values */
-    [data-testid="stMetricValue"] { 
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 32px !important; 
-        color: #00FFCC !important; 
-    }
-
-    /* Glass Card Enhancements */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.07);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 20px;
-        padding: 25px;
-        margin: 15px 0;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-    }
-
-    /* Input Boxes (Search Bar, etc.) */
-    input {
-        background-color: #1A1C23 !important;
-        color: white !important;
-        border: 1px solid #333 !important;
-    }
-
-    /* Tab Text Color */
-    .stTabs [data-baseweb="tab"] p {
-        color: #AAAAAA !important;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] p {
-        color: #00FFCC !important;
-    }
+    
+    /* Typography */
+    h1, h2, h3 { color: #202124 !important; font-weight: 600 !important; }
+    .metric-value { font-size: 24px; font-weight: 600; }
+    .gain-pos { color: #188038; } /* Green */
+    .gain-neg { color: #D93025; } /* Red */
+    
+    /* Clean Input Fields */
+    input { border: 1px solid #DADCE0 !important; border-radius: 4px !important; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- 3. BACKEND & PORTFOLIO DATA ---
 if "portfolio" not in st.session_state:
