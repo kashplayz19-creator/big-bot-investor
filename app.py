@@ -48,7 +48,23 @@ if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model_pro = genai.GenerativeModel('gemini-1.5-pro')
 
-# --- 4. NAVIGATION TABS ---
+# --- 4. BRANDING & NAVIGATION ---
+st.markdown("""
+    <style>
+    .nexus-title {
+        font-size: 50px;
+        font-weight: 800;
+        background: linear-gradient(45deg, #00FFCC, #0099FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: 2px;
+        margin-bottom: -10px;
+    }
+    </style>
+    <h1 class="nexus-title">📡 NEXUS INVEST</h1>
+    """, unsafe_allow_html=True)
+st.markdown("### Advanced Equity Intelligence Terminal")
+
 tab1, tab2, tab3 = st.tabs(["⚡ LIVE TERMINAL", "🔍 AI AUDIT LOG", "🤖 STRATEGY CHAT"])
 
 with tab1:
@@ -105,8 +121,8 @@ with tab2:
             st.error(f"Failed: {e}")
 
 with tab3:
-    st.header("🤖 Big Bot Pro Intelligence")
-    if "messages" not in st.session_state: st.session_state.messages = []
+st.header("🤖 Nexus Invest Intelligence")
+if "messages" not in st.session_state: st.session_state.messages = []
     for m in st.session_state.messages:
         with st.chat_message(m["role"]): st.markdown(m["content"])
     
