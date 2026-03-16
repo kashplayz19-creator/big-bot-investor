@@ -124,28 +124,68 @@ with tab1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
-    st.header("📊 Portfolio Performance")
+    st.header("📊 Nexus Portfolio Manager")
     
-    p_cols = st.columns(len(PORTFOLIO_DATA))
-    total_value = 0
-    portfolio_rows = []
+    # 1. ADD NEW TRANSACTION (The Input Section)
+    with st.expander("➕ Add New Transaction", expanded=False):
+        col1, col2, col3, col4 = st.columns(4)
+        with col1: t_ticker = st.text_input("Ticker", value="TATAMOTORS.NS").upper()
+        with col2: t_shares = st.number_input("Shares", min_value=1, value=1)
+        with col3: t_price = st.number_input("Buy Price (₹)", min_value=0.1, value=100.0)
+        with col4: t_date = st.date_input("Purchase Date")
+        
+        if st.button("Add to Portfolio"):
+            st.session_state.portfolio.append({
+                "Ticker": t_ticker, "Shares": t_shares, 
+                "Buy Price": t_price, "Date": str(t_date)
+            })
+            st.success(f"Added {t_ticker}!")
 
-    # Clean, single-line loop to avoid the SyntaxError
-    for i, (t, info) in enumerate(PORTFOLIO_DATA.items()):
-        try:
-            stock = yf.Ticker(t)
-            curr = stock.fast_info.get('last_price') or stock.history(period="1d")['Close'].iloc[-1]
-            val = curr * info['shares']
-            total_value += val
-            p_diff = ((curr - info['buy_price']) / info['buy_price']) * 100
+    # 2. PORTFOLIO CALCULATION
+    if st.session_state.portfolio:
+        display_data = []
+        total_investment = 0
+        total_current_value = 0
+
+        for item in st.session_state.portfolio:
+            stock = yf.Ticker(item['Ticker'])
+            # Get live price
+            current_p = stock.fast_info.get('last_price') or stock.history(period="1d")['Close'].iloc[-1]
             
-            with p_cols[i]:
-                st.metric(label=t.split('.')[0], value=f"₹{val:,.0f}", delta=f"{p_diff:.2f}%")
+            invested = item['Shares'] * item['Buy Price']
+            current_val = item['Shares'] * current_p
+            pl_rupees = current_val - invested
+            pl_percent = (pl_rupees / invested) * 100
             
-            portfolio_rows.append({"Ticker": t.split('.')[0], "Value": val})
-        except Exception as e:
-            st.warning(f"Could not load {t}")
-            continue
+            total_investment += invested
+            total_current_value += current_val
+            
+            display_data.append({
+                "Ticker": item['Ticker'].split('.')[0],
+                "Shares": item['Shares'],
+                "Buy Price": f"₹{item['Buy Price']:.2f}",
+                "Current": f"₹{current_p:.2f}",
+                "P&L (%)": f"{pl_percent:+.2f}%",
+                "Value": current_val
+            })
+
+        # Summary Metrics
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total Investment", f"₹{total_investment:,.2f}")
+        m2.metric("Current Value", f"₹{total_current_value:,.2f}", delta=f"{((total_current_value-total_investment)/total_investment)*100:.2f}%")
+        m3.metric("Total P&L", f"₹{total_current_value - total_investment:,.2f}")
+
+        # Unique Google Finance Style Table
+        df_portfolio = pd.DataFrame(display_data)
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.table(df_portfolio) 
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Donut Chart for Diversification
+        fig_donut = px.pie(df_portfolio, values='Value', names='Ticker', hole=0.6,
+                           color_discrete_sequence=px.colors.sequential.Mint_r)
+        fig_donut.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", height=350)
+        st.plotly_chart(fig_donut, use_container_width=True)
 # --- TAB 3: AI AUDIT LOG ---
 with tab3:
     st.header("📋 Audit Stock Analysis")
@@ -182,34 +222,34 @@ with tab3:
 
 # --- TAB 4: STRATEGY CHAT ---
 with tab4:
-    st.header("🤖 Nexus Invest Intelligence")
-    st.info("AI Analysis specifically for the Indian Market (NSE/BSE).")
-
-    # Chat UI Logic
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Display past messages
-    for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"])
+    st.header("🤖 Nexus Strategy Intelligence")
     
-    # User Input
-    if prompt := st.chat_input("Ask Nexus Invest about a stock or strategy..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-            
-        with st.chat_message("assistant"):
-            # We give the AI 'Context' so it knows what stock you are currently looking at
-            ai_context = f"""
-            You are Nexus Invest Pro. The user is currently looking at {ticker_input} 
-            trading at ₹{current_price:.2f}. 
-            Answer their question using technical analysis principles: {prompt}
-            """
-            try:
+    col_chat, col_news = st.columns([2, 1])
+    
+    with col_chat:
+        if "messages" not in st.session_state: st.session_state.messages = []
+        for m in st.session_state.messages:
+            with st.chat_message(m["role"]): st.markdown(m["content"])
+        
+        if prompt := st.chat_input("Analyze market sentiment..."):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"): st.markdown(prompt)
+            with st.chat_message("assistant"):
+                ai_context = f"You are Nexus Invest. Current focus: {ticker_input} at ₹{current_price}. Analyze this: {prompt}"
                 response = model_pro.generate_content(ai_context)
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"AI Connection Error: {e}")
+
+    with col_news:
+        st.subheader("📰 Market Radar")
+        try:
+            news_stock = yf.Ticker(ticker_input)
+            news_items = news_stock.news[:5] # Get top 5 news stories
+            
+            for article in news_items:
+                st.markdown(f"""
+                **{article['title']}** *Source: {article['publisher']}* [Read More]({article['link']})
+                ---
+                """)
+        except:
+            st.write("No recent news found for this ticker.")
