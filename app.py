@@ -111,13 +111,13 @@ with tab2:
     st.header("Portfolio")
     
     # --- ASSET BAR ---
-    etf_count = sum([item['Shares'] for item in st.session_state.portfolio if "BEES" in item['Ticker']])
-    stock_count = sum([item['Shares'] for item in st.session_state.portfolio if "BEES" not in item['Ticker']])
-    total_shares = etf_count + stock_count
+    etf_vals = sum([item['Shares'] * (yf.Ticker(item['Ticker']).fast_info.get('last_price') or 1) for item in st.session_state.portfolio if "BEES" in item['Ticker']])
+    stock_vals = sum([item['Shares'] * (yf.Ticker(item['Ticker']).fast_info.get('last_price') or 1) for item in st.session_state.portfolio if "BEES" not in item['Ticker']])
+    total_p_val = etf_vals + stock_vals
     
-    if total_shares > 0:
-        st.write(f"Asset Split: ETFs {(etf_count/total_shares)*100:.1f}% | Stocks {(stock_count/total_shares)*100:.1f}%")
-        st.progress(etf_count/total_shares)
+    if total_p_val > 0:
+        st.write(f"Asset Split: ETFs {(etf_vals/total_p_val)*100:.1f}% | Stocks {(stock_vals/total_p_val)*100:.1f}%")
+        st.progress(etf_vals/total_p_val)
 
     # --- ADD INVESTMENT ---
     with st.popover("➕ Add Investment"):
@@ -142,54 +142,37 @@ with tab2:
                 day_gain = (current_p - prev_p) * item['Shares']
                 total_val = current_p * item['Shares'] 
                 day_gain_pct = ((current_p - prev_p) / prev_p) * 100
-                total_pl = (current_p - item['Buy Price']) * item['Shares']
-                total_pl_pct = ((current_p - item['Buy Price']) / item['Buy Price']) * 100
                 
-                # --- SENSITIVE LOGO LOOKUP ---
                 ticker_clean = item['Ticker'].split('.')[0]
-                # We map common NSE tickers to their actual corporate domain for logos
-                logo_domain_map = {
-                    "HDFCBANK": "hdfcbank.com",
-                    "NIFTYBEES": "niftyindices.com", # Alternative fallback
-                    "BEL": "bel-india.in",
-                }
-                logo_domain = logo_domain_map.get(ticker_clean, f"{ticker_clean.lower()}.com")
+                # Mapping specifically for HDFC Bank and others to get actual logos
+                domain_map = {"HDFCBANK": "hdfcbank.com", "NIFTYBEES": "niftyindices.com", "BEL": "bel-india.in"}
+                logo_domain = domain_map.get(ticker_clean, f"{ticker_clean.lower()}.com")
                 logo_url = f"https://logo.clearbit.com/{logo_domain}"
-                
-                # --- REFACTORED CLEAN GRID LAYOUT ---
+
+                # THIS BLOCK MUST HAVE NO EXTRA INDENTATION INSIDE THE F-STRING
                 st.markdown(f"""
-                <div class="g-card" style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; gap: 20px;">
-                    
-                    <div style="display: flex; align-items: center;">
-                        <img src="{logo_url}" width="40" height="40" style="border-radius: 8px; margin-right: 15px; border: 1px solid #DADCE0;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"width:40px; height:40px; border-radius:8px; background:#f0f2f6; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#5f6368;\">{ticker_clean[0]}</div>';">
-                        <div>
-                            <strong>{ticker_clean}</strong><br>
-                            <small style="color: #70757A;">Qty: {item['Shares']}</small>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: middle;">
-                        <span style="color: #70757A;">Current: </span><strong>₹{current_p:.2f}</strong><br>
-                        <small style="color: #70757A;">Avg: ₹{item['Buy Price']:.2f}</small>
-                    </div>
-                    
-                    <div style="text-align: right;">
-                        <span style="font-size: 18px; font-weight: 600;">₹{total_val:,.2f}</span><br>
-                        
-                        <span class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}" style="font-size: 14px;">
-                            Day: {'+' if day_gain >=0 else ''}{day_gain:,.2f} ({day_gain_pct:+.2f}%)
-                        </span><br>
-                        
-                        <span class="{'gain-pos' if total_pl >= 0 else 'gain-neg'}" style="font-size: 12px; font-style: italic;">
-                            P&L: {'+' if total_pl >=0 else ''}{total_pl:,.2f} ({total_pl_pct:+.2f}%)
-                        </span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.warning(f"Data not available for {item['Ticker']}")
+<div class="g-card" style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #DADCE0; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+    <div style="display: flex; align-items: center; flex: 1;">
+        <img src="{logo_url}" width="40" height="40" style="border-radius: 4px; margin-right: 12px; border: 1px solid #f0f0f0;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={ticker_clean}&background=f0f2f6&color=5f6368&bold=true';">
+        <div>
+            <div style="font-weight: 600; color: #202124;">{ticker_clean}</div>
+            <div style="font-size: 12px; color: #70757A;">{item['Shares']} shares • ₹{item['Buy Price']:.2f} avg</div>
+        </div>
+    </div>
+    <div style="text-align: center; flex: 1;">
+        <div style="font-size: 14px; color: #70757A;">Price</div>
+        <div style="font-weight: 500;">₹{current_p:,.2f}</div>
+    </div>
+    <div style="text-align: right; flex: 1;">
+        <div style="font-weight: 600; font-size: 16px;">₹{total_val:,.2f}</div>
+        <div class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}" style="font-size: 13px;">
+            {'+' if day_gain >= 0 else ''}{day_gain:,.2f} ({day_gain_pct:+.2f}%)
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
         except Exception as e:
-            st.error(f"Error loading {item['Ticker']}: {e}")
+            st.error(f"Error loading {item['Ticker']}")
 # --- TAB 3: AI AUDIT LOG ---
 with tab3:
     st.header("📋 Audit Stock Analysis")
