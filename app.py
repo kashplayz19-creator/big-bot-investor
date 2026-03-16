@@ -85,7 +85,7 @@ with tab1:
     col_a, col_b = st.columns([1, 2])
     
     with col_a:
-        ticker_input = st.text_input("Enter NSE Ticker", value="TATAMOTORS.NS").upper()
+        ticker_input = st.text_input("Enter NSE Ticker", value="HDFCBANK.NS").upper()
         
         @st.fragment(run_every=15)
         def show_price_card(ticker):
