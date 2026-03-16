@@ -11,10 +11,7 @@ from datetime import datetime
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Nexus Invest | Pro Terminal", page_icon="📡", layout="wide")
 
-# --- 2. PREMIUM FINTECH UI ---
-st.markdown("""
-    <style>
-    # --- 2. PREMIUM FINTECH UI (V2: High-Contrast) ---
+# --- 2. PREMIUM FINTECH UI (High-Contrast V2) ---
 st.markdown("""
     <style>
     /* Import high-end fonts */
@@ -23,7 +20,7 @@ st.markdown("""
     /* Global Text Visibility */
     .stApp { 
         background-color: #0E1117; 
-        color: #E0E0E0 !important; /* Off-white for readability */
+        color: #E0E0E0 !important; 
         font-family: 'Inter', sans-serif;
     }
 
@@ -32,17 +29,17 @@ st.markdown("""
         color: #FFFFFF !important; 
     }
 
-    /* Metric Labels (The small text above the price) */
+    /* Metric Labels */
     [data-testid="stMetricLabel"] { 
         color: #AAAAAA !important; 
         font-size: 14px !important;
     }
 
-    /* Metric Values (The numbers) */
+    /* Metric Values */
     [data-testid="stMetricValue"] { 
         font-family: 'JetBrains Mono', monospace;
         font-size: 32px !important; 
-        color: #00FFCC !important; /* Neon Mint */
+        color: #00FFCC !important; 
     }
 
     /* Glass Card Enhancements */
@@ -56,13 +53,6 @@ st.markdown("""
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
     }
 
-    /* Table Visibility (For your Portfolio Tab) */
-    .stTable {
-        color: #E0E0E0 !important;
-        background-color: rgba(255, 255, 255, 0.02);
-        border-radius: 10px;
-    }
-    
     /* Input Boxes (Search Bar, etc.) */
     input {
         background-color: #1A1C23 !important;
@@ -78,8 +68,6 @@ st.markdown("""
     .stTabs [aria-selected="true"] p {
         color: #00FFCC !important;
     }
-    </style>
-    """, unsafe_allow_html=True)
     </style>
     """, unsafe_allow_html=True)
 
