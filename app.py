@@ -74,10 +74,9 @@ with tab1:
     with col_a:
         ticker_input = st.text_input("Enter NSE Ticker", value="TATAMOTORS.NS").upper()
         
-        # LIVE PRICE FRAGMENT
         @st.fragment(run_every=15)
-      @st.fragment(run_every=15)
         def show_price_card(ticker):
+            # ... (rest of function code)
             try:
                 data = yf.Ticker(ticker)
                 # Strategy 1: Fast Info
