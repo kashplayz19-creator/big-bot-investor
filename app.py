@@ -107,68 +107,59 @@ with tab1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
-    st.header("📊 Nexus Portfolio Manager")
+    st.header("Portfolio")
     
-    # 1. ADD NEW TRANSACTION (The Input Section)
-    with st.expander("➕ Add New Transaction", expanded=False):
-        col1, col2, col3, col4 = st.columns(4)
-        with col1: t_ticker = st.text_input("Ticker", value="TATAMOTORS.NS").upper()
-        with col2: t_shares = st.number_input("Shares", min_value=1, value=1)
-        with col3: t_price = st.number_input("Buy Price (₹)", min_value=0.1, value=100.0)
-        with col4: t_date = st.date_input("Purchase Date")
+    # --- ASSET BAR ---
+    etf_count = sum([item['Shares'] for item in st.session_state.portfolio if "BEES" in item['Ticker']])
+    stock_count = sum([item['Shares'] for item in st.session_state.portfolio if "BEES" not in item['Ticker']])
+    total = etf_count + stock_count
+    
+    if total > 0:
+        st.write(f"Asset Split: ETFs { (etf_count/total)*100:.1f}% | Stocks {(stock_count/total)*100:.1f}%")
+        st.progress((etf_count/total))
+
+    # --- SUMMARY CARD ---
+    # (Calculated in loop below)
+    
+    # --- ADD INVESTMENT ---
+    with st.popover("➕ Add Investment"):
+        t_ticker = st.text_input("Ticker", "RELIANCE.NS").upper()
+        col1, col2 = st.columns(2)
+        t_shares = col1.number_input("Shares", 1)
+        t_price = col2.number_input("Buy Price", 100.0)
+        if st.button("Confirm"):
+            st.session_state.portfolio.append({"Ticker": t_ticker, "Shares": t_shares, "Buy Price": t_price})
+            st.rerun()
+
+    # --- PORTFOLIO LIST ---
+    for item in st.session_state.portfolio:
+        stock = yf.Ticker(item['Ticker'])
+        hist = stock.history(period="2d")
+        current_p = hist['Close'].iloc[-1]
+        prev_p = hist['Close'].iloc[-2]
         
-        if st.button("Add to Portfolio"):
-            st.session_state.portfolio.append({
-                "Ticker": t_ticker, "Shares": t_shares, 
-                "Buy Price": t_price, "Date": str(t_date)
-            })
-            st.success(f"Added {t_ticker}!")
-
-    # 2. PORTFOLIO CALCULATION
-    if st.session_state.portfolio:
-        display_data = []
-        total_investment = 0
-        total_current_value = 0
-
-        for item in st.session_state.portfolio:
-            stock = yf.Ticker(item['Ticker'])
-            # Get live price
-            current_p = stock.fast_info.get('last_price') or stock.history(period="1d")['Close'].iloc[-1]
-            
-            invested = item['Shares'] * item['Buy Price']
-            current_val = item['Shares'] * current_p
-            pl_rupees = current_val - invested
-            pl_percent = (pl_rupees / invested) * 100
-            
-            total_investment += invested
-            total_current_value += current_val
-            
-            display_data.append({
-                "Ticker": item['Ticker'].split('.')[0],
-                "Shares": item['Shares'],
-                "Buy Price": f"₹{item['Buy Price']:.2f}",
-                "Current": f"₹{current_p:.2f}",
-                "P&L (%)": f"{pl_percent:+.2f}%",
-                "Value": current_val
-            })
-
-        # Summary Metrics
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Total Investment", f"₹{total_investment:,.2f}")
-        m2.metric("Current Value", f"₹{total_current_value:,.2f}", delta=f"{((total_current_value-total_investment)/total_investment)*100:.2f}%")
-        m3.metric("Total P&L", f"₹{total_current_value - total_investment:,.2f}")
-
-        # Unique Google Finance Style Table
-        df_portfolio = pd.DataFrame(display_data)
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.table(df_portfolio) 
-        st.markdown('</div>', unsafe_allow_html=True)
+        day_gain = (current_p - prev_p) * item['Shares']
+        total_val = current_p * item['Shares']
         
-        # Donut Chart for Diversification
-        fig_donut = px.pie(df_portfolio, values='Value', names='Ticker', hole=0.6,
-                           color_discrete_sequence=px.colors.sequential.Mint_r)
-        fig_donut.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", height=350)
-        st.plotly_chart(fig_donut, use_container_width=True)
+        # Display as a clean row
+        with st.container():
+            st.markdown(f"""
+            <div class="g-card" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center;">
+                    <img src="https://logo.clearbit.com/{item['Ticker'].split('.')[0].lower()}.com" width="40" style="border-radius: 50%; margin-right: 15px;">
+                    <div>
+                        <strong>{item['Ticker'].split('.')[0]}</strong><br>
+                        <small style="color: #70757A;">Qty: {item['Shares']} | Avg: ₹{item['Buy Price']:.2f}</small>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <strong>₹{current_val:,.2f}</strong><br>
+                    <span class="{'gain-pos' if day_gain >= 0 else 'gain-neg'}">
+                        {'+' if day_gain >=0 else ''}{day_gain:,.2f} ({((current_p-prev_p)/prev_p)*100:.2f}%)
+                    </span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 # --- TAB 3: AI AUDIT LOG ---
 with tab3:
     st.header("📋 Audit Stock Analysis")
