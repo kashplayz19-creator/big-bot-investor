@@ -130,3 +130,26 @@ with tab_term:
     try:
         t_obj = yf.Ticker(search_ticker, session=stealth_session)
         df = t_obj.history(period="6mo")
+        if not df.empty:
+            curr_price = df['Close'].iloc[-1]
+            
+            col_stat, col_chart = st.columns([1, 3])
+            with col_stat:
+                st.markdown(f"## {search_ticker}")
+                st.metric("Live Price", f"₹{curr_price:,.2f}")
+                
+                # Market Status Logic
+                now = datetime.now()
+                is_open = (9 <= now.hour < 16) and now.weekday() < 5
+                status_color = "gold-glow" if is_open else "silver"
+                st.markdown(f"Status: <span class='{status_color}'>{'● LIVE' if is_open else '○ SECURED'}</span>", unsafe_allow_html=True)
+
+            with col_chart:
+                fig = go.Figure(data=[go.Candlestick(
+                    x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
+                    increasing_line_color='#26A69A', decreasing_line_color='#EF5350'
+                )])
+                fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', height=400, xaxis_rangeslider_visible=False)
+                st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Stealth Protocol: Data sync failed. {e}")
