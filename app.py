@@ -126,3 +126,7 @@ tab_term, tab_intel, tab_stress, tab_lifestyle = st.tabs(["📊 TERMINAL", "🕵
 
 # --- TAB 1: TERMINAL ---
 with tab_term:
+    search_ticker = st.text_input("Global Market Search", "HDFCBANK.NS").upper()
+    try:
+        t_obj = yf.Ticker(search_ticker, session=stealth_session)
+        df = t_obj.history(period="6mo")
