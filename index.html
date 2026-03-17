@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>NEXUS | THE VAULT</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.63.1/build/stlite.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.63.1/build/stlite.js"></script>
+    <script>
+      stlite.mount({
+        requirements: ["yfinance", "pandas", "plotly"], 
+        entrypoint: "app.py",
+        files: {
+          "app.py": `
+import streamlit as st
+# YOUR VAULT CODE GOES HERE
+st.title("🛡️ NEXUS VAULT")
+st.write("Data is currently Local-Only")
+          `
+        }
+      }, document.getElementById("root"));
+    </script>
+  </body>
+</html>
