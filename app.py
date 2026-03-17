@@ -83,7 +83,7 @@ if st.session_state.authenticated:
     with tab_intel:
         st.markdown("### 🏛️ INTELLIGENCE SCAN")
         if st.button("RUN QUANTITATIVE ANALYSIS"):
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-1.5-flash', tools=[{"google_search_retrieval": {}}])
             prompt = f"""
             Analyze {ticker}. Current Price: {df['Close'].iloc[-1]:.2f}. Current RSI: {rsi_val:.2f}.
             If RSI < 30, classify as 'OVERSOLD/ACCUMULATE'. If RSI > 70, classify as 'OVERBOUGHT/SECURE'.
