@@ -79,6 +79,14 @@ if st.session_state.authenticated:
             )])
             fig.update_layout(template="plotly_dark", paper_bgcolor='#0F0F12', plot_bgcolor='#0F0F12', height=400)
             st.plotly_chart(fig, use_container_width=True)
+            # Add this under your Chart in tab_term
+with st.expander("🌐 MARKET PULSE (NSE)"):
+    nifty = yf.Ticker("^NSEI", session=stealth_session)
+    n_data = nifty.history(period="1d")
+    if not n_data.empty:
+        n_curr = n_data['Close'].iloc[-1]
+        n_change = n_curr - n_data['Open'].iloc[-0]
+        st.metric("NIFTY 50", f"{n_curr:,.2f}", f"{n_change:+.2f}")
 
     with tab_intel:
         st.markdown("### 🏛️ INTELLIGENCE SCAN")
