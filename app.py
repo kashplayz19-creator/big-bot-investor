@@ -91,17 +91,29 @@ if "portfolio" not in st.session_state: st.session_state.portfolio = []
 if "shadow_vault" not in st.session_state: st.session_state.shadow_vault = []
 if "subs_cost" not in st.session_state: st.session_state.subs_cost = 600 # Monthly lifestyle cost
 
-# --- 5. SIDEBAR (Command Center) ---
+# --- 3. SIDEBAR (Command Center) ---
 with st.sidebar:
     st.markdown("<h1 class='gold-glow'>COMMAND CENTER</h1>", unsafe_allow_html=True)
     
-    # API Integration
-    gemini_key = st.text_input("Gemini API Key", type="password", help="Enter your key to unlock Market Intelligence.")
+    gemini_key = st.text_input("Gemini API Key", type="password")
+    
     if gemini_key:
-        genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel('gemini-1.5-flash', tools=[{"google_search_retrieval": {}}])
+        try:
+            genai.configure(api_key=gemini_key)
+            # Test the key with a simple call
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            # If this succeeds, we show the status
+            st.success("✅ ACCESS GRANTED: Intelligence Online")
+            # Enable Search Tool
+            model = genai.GenerativeModel('gemini-1.5-flash', tools=[{"google_search_retrieval": {}}])
+        except Exception as e:
+            st.error(f"❌ ACCESS DENIED: Invalid Key")
+            gemini_key = None # Reset so tabs don't crash
+    else:
+        st.warning("⚠️ VAULT LOCKED: Enter API Key")
 
     st.write("---")
+    # ... (rest of your entry form code)
     
     # Asset Entry
     is_shadow = st.toggle("🌙 SHADOW MODE", help="Test a 'hunch' trade without affecting your Real Vault.")
