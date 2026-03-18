@@ -113,12 +113,12 @@ if st.session_state.authenticated:
             st.markdown(f"### {ticker} | <span class='gold-glow'>₹{curr_p:,.2f}</span>", unsafe_allow_html=True)
             st.metric("Relative Strength Index (14)", f"{rsi_val:.2f}")
             
-            # Force high-contrast Gold/Red theme
+            # Force high-contrast green/Red theme
             fig = go.Figure(data=[go.Candlestick(
                 x=df.index, 
                 open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
-                increasing_line_color='#F9D342', # Nexus Gold
-                decreasing_line_color='#FF4B4B'  # High-vis Red
+                increasing_line_color='#00FF00', # green
+                decreasing_line_color='#FF0000'  # Red
             )])
 
             fig.update_layout(
