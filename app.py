@@ -97,59 +97,24 @@ with st.sidebar:
                 st.rerun()
 
 # --- 5. MAIN ENGINE ---
+# --- 5. MAIN ENGINE ---
 if st.session_state.authenticated:
+    # This line must be indented 4 spaces from the 'if' above
     tab_term, tab_intel, tab_yield = st.tabs(["📊 TERMINAL", "🕵️ INTELLIGENCE", "💳 YIELD"])
     
     with tab_term:
+        # Everything inside here is indented 8 spaces total
         ticker = st.text_input("ASSET SEARCH", "HDFCBANK.NS").upper()
-        t = yf.Ticker(ticker, session=stealth_session)
-        df = t.history(period="6mo")
-        
-        if not df.empty:
-            rsi_series = calculate_rsi(df)
-            rsi_val = rsi_series.iloc[-1]
-            curr_p = df['Close'].iloc[-1]
-            
-            st.markdown(f"### {ticker} | <span class='gold-glow'>₹{curr_p:,.2f}</span>", unsafe_allow_html=True)
-            st.metric("Relative Strength Index (14)", f"{rsi_val:.2f}")
-            
-            # Force high-contrast green/Red theme
-            fig = go.Figure(data=[go.Candlestick(
-                x=df.index, 
-                open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
-                increasing_line_color='#00FF00', # green
-                decreasing_line_color='#FF0000'  # Red
-            )])
+        # ... (rest of your terminal code) ...
 
-            fig.update_layout(
-                template="plotly_dark",
-                paper_bgcolor='rgba(0,0,0,0)', # Transparent to match your CSS
-                plot_bgcolor='rgba(0,0,0,0)',
-                height=400,
-                xaxis_rangeslider_visible=False,
-                margin=dict(t=30, b=0, l=0, r=0),
-                font=dict(color='#E0E0E0') # Force light text
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with st.expander("🌐 MARKET PULSE (NSE)"):
-            nifty = yf.Ticker("^NSEI", session=stealth_session)
-            n_data = nifty.history(period="1d")
-            if not n_data.empty:
-                n_curr = n_data['Close'].iloc[-1]
-                n_open = n_data['Open'].iloc[0]
-                n_change = n_curr - n_open
-                st.metric("NIFTY 50", f"{n_curr:,.2f}", f"{n_change:+.2f}")
-
-   with tab_intel:
+    with tab_intel:
+        # This 'with' must line up exactly with 'with tab_term'
         st.markdown("### 🏛️ INTELLIGENCE SCAN")
         if st.button("RUN QUANTITATIVE ANALYSIS"):
-            # Check if model exists before running
             if "model" in st.session_state:
                 with st.spinner("Analyzing Global Signals..."):
                     try:
                         prompt = f"Analyze {ticker}. Price: {curr_p:.2f}, RSI: {rsi_val:.2f}. Search news (24h) and provide a Vault Impact Table."
-                        # Execute using the stored session model
                         response = st.session_state.model.generate_content(prompt)
                         st.markdown(f"<div class='intelligence-box'>{response.text}</div>", unsafe_allow_html=True)
                     except Exception as ai_err:
