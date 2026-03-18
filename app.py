@@ -59,21 +59,24 @@ with st.sidebar:
         
         if st.button("UNLOCK VAULT"):
             if input_pass == VAULT_PASSCODE:
-                # 1. First, let them in
-                st.session_state.authenticated = True
-                
-                # 2. Then, try to pull the secret key for the AI
                 try:
-                    # Look for the key in your Streamlit Secrets
-                    st.session_state.api_key = st.secrets["GEMINI_API_KEY"]
-                    genai.configure(api_key=st.session_state.api_key)
-                    st.toast("Intelligence Systems Online")
+                    # 1. Access the Key from Secrets
+                    api_key = st.secrets["GEMINI_API_KEY"]
+                    genai.configure(api_key=api_key)
+                    
+                    # 2. Pre-initialize the model to prevent "NotFound" errors later
+                    # We store it in session_state so it stays active across tabs
+                    st.session_state.model = genai.GenerativeModel(
+                        model_name='gemini-1.5-flash',
+                        tools=[{"google_search_retrieval": {}}]
+                    )
+                    
+                    st.session_state.authenticated = True
+                    st.rerun()
                 except Exception as e:
-                    st.warning("Vault Unlocked, but Intelligence (AI) is Offline. Check Secrets.")
-                
-                st.rerun()
+                    st.error(f"Intelligence Offline: {e}")
             else:
-                st.error("ACCESS DENIED: INCORRECT PASSCODE")
+                st.error("ACCESS DENIED")
     else:
         # LOGOUT BUTTON
         if st.button("LOCK VAULT"):
