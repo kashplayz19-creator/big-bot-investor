@@ -47,39 +47,41 @@ def verify_handshake(key):
         return True
     except: return False
 
-# --- 4. COMMAND CENTER (Secrets & Custom Passcode) ---
-# This looks for "GEMINI_API_KEY" in your GitHub/Streamlit Secrets
-try:
-    HIDDEN_GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
-except:
-    HIDDEN_GEMINI_KEY = None
-
-VAULT_PASSCODE = "1234" # <--- Change this to your desired 4-digit code
+# --- 4. COMMAND CENTER (The "Master Key" Logic) ---
+VAULT_PASSCODE = "1234"  # <--- Confirm this is what you want
 
 with st.sidebar:
     st.markdown("<h1 class='gold-glow'>COMMAND CENTER</h1>", unsafe_allow_html=True)
     
-    if not st.session_state.authenticated:
-        # Front-door passcode for your phone
+    # Check if we are already logged in
+    if not st.session_state.get("authenticated", False):
         input_pass = st.text_input("ENTER VAULT PASSCODE", type="password")
         
         if st.button("UNLOCK VAULT"):
             if input_pass == VAULT_PASSCODE:
-                if HIDDEN_GEMINI_KEY and verify_handshake(HIDDEN_GEMINI_KEY):
-                    st.session_state.authenticated = True
-                    st.session_state.api_key = HIDDEN_GEMINI_KEY
-                    st.rerun()
-                elif not HIDDEN_GEMINI_KEY:
-                    st.error("DATABASE ERROR: Secret Key Not Found")
-                else:
-                    st.error("SYSTEM ERROR: Handshake Failed")
+                # 1. First, let them in
+                st.session_state.authenticated = True
+                
+                # 2. Then, try to pull the secret key for the AI
+                try:
+                    # Look for the key in your Streamlit Secrets
+                    st.session_state.api_key = st.secrets["GEMINI_API_KEY"]
+                    genai.configure(api_key=st.session_state.api_key)
+                    st.toast("Intelligence Systems Online")
+                except Exception as e:
+                    st.warning("Vault Unlocked, but Intelligence (AI) is Offline. Check Secrets.")
+                
+                st.rerun()
             else:
                 st.error("ACCESS DENIED: INCORRECT PASSCODE")
     else:
-        st.success("🏛️ SECURE CONNECTION")
+        # LOGOUT BUTTON
         if st.button("LOCK VAULT"):
             st.session_state.authenticated = False
             st.rerun()
+        
+        st.success("🏛️ SECURE CONNECTION")
+        st.write(f"Node: Kondapur-Alpha")
 
         # --- ASSET LOCKER FORM ---
         with st.form("add_asset"):
@@ -90,10 +92,6 @@ with st.sidebar:
             if st.form_submit_button("SECURE IN VAULT"):
                 st.session_state.portfolio[tick] = {"shares": qty, "entry": entry}
                 st.rerun()
-        
-        if st.button("WIPE VAULT DATA"):
-            st.session_state.portfolio = {}
-            st.rerun()
 
 # --- 5. MAIN ENGINE ---
 if st.session_state.authenticated:
