@@ -113,12 +113,23 @@ if st.session_state.authenticated:
             st.markdown(f"### {ticker} | <span class='gold-glow'>₹{curr_p:,.2f}</span>", unsafe_allow_html=True)
             st.metric("Relative Strength Index (14)", f"{rsi_val:.2f}")
             
+            # Force high-contrast Gold/Red theme
             fig = go.Figure(data=[go.Candlestick(
-                x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
-                increasing_line_color='#F9D342', decreasing_line_color='#FF4B4B'
+                x=df.index, 
+                open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
+                increasing_line_color='#F9D342', # Nexus Gold
+                decreasing_line_color='#FF4B4B'  # High-vis Red
             )])
-            fig.update_layout(template="plotly_dark", paper_bgcolor='#0F0F12', plot_bgcolor='#0F0F12', 
-                              height=400, xaxis_rangeslider_visible=False)
+
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)', # Transparent to match your CSS
+                plot_bgcolor='rgba(0,0,0,0)',
+                height=400,
+                xaxis_rangeslider_visible=False,
+                margin=dict(t=30, b=0, l=0, r=0),
+                font=dict(color='#E0E0E0') # Force light text
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         with st.expander("🌐 MARKET PULSE (NSE)"):
