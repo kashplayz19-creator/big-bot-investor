@@ -52,25 +52,25 @@ VAULT_PASSCODE = "1234"  # <--- Confirm this is what you want
 
 with st.sidebar:
     st.markdown("<h1 class='gold-glow'>COMMAND CENTER</h1>", unsafe_allow_html=True)
-    
+
     # Check if we are already logged in
     if not st.session_state.get("authenticated", False):
         input_pass = st.text_input("ENTER VAULT PASSCODE", type="password")
-        
+
         if st.button("UNLOCK VAULT"):
             if input_pass == VAULT_PASSCODE:
                 try:
                     # 1. Access the Key from Secrets
                     api_key = st.secrets["GEMINI_API_KEY"]
                     genai.configure(api_key=api_key)
-                    
+
                     # 2. Pre-initialize the model to prevent "NotFound" errors later
                     # We store it in session_state so it stays active across tabs
                     st.session_state.model = genai.GenerativeModel(
                         model_name='gemini-1.5-flash',
                         tools=[{"google_search_retrieval": {}}]
                     )
-                    
+
                     st.session_state.authenticated = True
                     st.rerun()
                 except Exception as e:
@@ -82,7 +82,7 @@ with st.sidebar:
         if st.button("LOCK VAULT"):
             st.session_state.authenticated = False
             st.rerun()
-        
+
         st.success("🏛️ SECURE CONNECTION")
         st.write(f"Node: Kondapur-Alpha")
 
@@ -97,24 +97,72 @@ with st.sidebar:
                 st.rerun()
 
 # --- 5. MAIN ENGINE ---
-# --- 5. MAIN ENGINE ---
 if st.session_state.authenticated:
-    # This line must be indented 4 spaces from the 'if' above
     tab_term, tab_intel, tab_yield = st.tabs(["📊 TERMINAL", "🕵️ INTELLIGENCE", "💳 YIELD"])
-    
+
     with tab_term:
-        # Everything inside here is indented 8 spaces total
         ticker = st.text_input("ASSET SEARCH", "HDFCBANK.NS").upper()
-        # ... (rest of your terminal code) ...
+        t = yf.Ticker(ticker, session=stealth_session)
+        df = t.history(period="6mo")
+
+        if not df.empty:
+            rsi_series = calculate_rsi(df)
+            rsi_val = rsi_series.iloc[-1]
+            curr_p = df['Close'].iloc[-1]
+
+            st.markdown(f"### {ticker} | <span class='gold-glow'>₹{curr_p:,.2f}</span>", unsafe_allow_html=True)
+            st.metric("Relative Strength Index (14)", f"{rsi_val:.2f}")
+
+            # Force high-contrast green/Red theme
+            fig = go.Figure(data=[go.Candlestick(
+                x=df.index, 
+                open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
+                increasing_line_color='#00FF00', # green
+                decreasing_line_color='#FF0000'  # Red
+            )])
+
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)', # Transparent to match your CSS
+                plot_bgcolor='rgba(0,0,0,0)',
+                height=400,
+                xaxis_rangeslider_visible=False,
+                margin=dict(t=30, b=0, l=0, r=0),
+                font=dict(color='#E0E0E0') # Force light text
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        with st.expander("🌐 MARKET PULSE (NSE)"):
+            nifty = yf.Ticker("^NSEI", session=stealth_session)
+            n_data = nifty.history(period="1d")
+            if not n_data.empty:
+                n_curr = n_data['Close'].iloc[-1]
+                n_open = n_data['Open'].iloc[0]
+                n_change = n_curr - n_open
+                st.metric("NIFTY 50", f"{n_curr:,.2f}", f"{n_change:+.2f}")
 
     with tab_intel:
-        # This 'with' must line up exactly with 'with tab_term'
+   with tab_intel:
         st.markdown("### 🏛️ INTELLIGENCE SCAN")
         if st.button("RUN QUANTITATIVE ANALYSIS"):
+            with st.spinner("Decrypting Market Signals..."):
+                genai.configure(api_key=st.session_state.api_key)
+                model = genai.GenerativeModel('gemini-1.5-flash', tools=[{"google_search_retrieval": {}}])
+                prompt = f"""
+                Analyze {ticker} for an investor in Kondapur, Hyderabad. 
+                Current Price: {curr_p:.2f}. Current RSI: {rsi_val:.2f}.
+                Use Google Search to find news from the last 24 hours (MoneyControl, ET).
+                Focus on delivery volume and RSI signals. 
+                Format output in a Vault Impact Table. Tone: Elite.
+                """
+                response = model.generate_content(prompt)
+                st.markdown(f"<div class='intelligence-box'>{response.text}</div>", unsafe_allow_html=True)
+            # Check if model exists before running
             if "model" in st.session_state:
                 with st.spinner("Analyzing Global Signals..."):
                     try:
                         prompt = f"Analyze {ticker}. Price: {curr_p:.2f}, RSI: {rsi_val:.2f}. Search news (24h) and provide a Vault Impact Table."
+                        # Execute using the stored session model
                         response = st.session_state.model.generate_content(prompt)
                         st.markdown(f"<div class='intelligence-box'>{response.text}</div>", unsafe_allow_html=True)
                     except Exception as ai_err:
@@ -137,7 +185,7 @@ if st.session_state.authenticated:
                     total_gain += gain
                     with cols[i]:
                         st.markdown(f"<div class='vault-card'><strong>{tick}</strong><br>Gain: ₹{gain:,.2f}</div>", unsafe_allow_html=True)
-            
+
             st.divider()
             coverage = total_gain / st.session_state.subs_cost
             st.metric("Total Vault Profit", f"₹{total_gain:,.2f}")
@@ -145,4 +193,3 @@ if st.session_state.authenticated:
             st.progress(min(max(coverage / 12, 0.0), 1.0))
 
 st.write("---")
-st.caption("NEXUS | THE VAULT | KONDAPUR SECURE NODE")
