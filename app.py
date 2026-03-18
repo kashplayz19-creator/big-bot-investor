@@ -141,21 +141,21 @@ if st.session_state.authenticated:
                 n_change = n_curr - n_open
                 st.metric("NIFTY 50", f"{n_curr:,.2f}", f"{n_change:+.2f}")
 
-    with tab_intel:
+   with tab_intel:
         st.markdown("### 🏛️ INTELLIGENCE SCAN")
         if st.button("RUN QUANTITATIVE ANALYSIS"):
-            with st.spinner("Decrypting Market Signals..."):
-                genai.configure(api_key=st.session_state.api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash', tools=[{"google_search_retrieval": {}}])
-                prompt = f"""
-                Analyze {ticker} for an investor in Kondapur, Hyderabad. 
-                Current Price: {curr_p:.2f}. Current RSI: {rsi_val:.2f}.
-                Use Google Search to find news from the last 24 hours (MoneyControl, ET).
-                Focus on delivery volume and RSI signals. 
-                Format output in a Vault Impact Table. Tone: Elite.
-                """
-                response = model.generate_content(prompt)
-                st.markdown(f"<div class='intelligence-box'>{response.text}</div>", unsafe_allow_html=True)
+            # Check if model exists before running
+            if "model" in st.session_state:
+                with st.spinner("Analyzing Global Signals..."):
+                    try:
+                        prompt = f"Analyze {ticker}. Price: {curr_p:.2f}, RSI: {rsi_val:.2f}. Search news (24h) and provide a Vault Impact Table."
+                        # Execute using the stored session model
+                        response = st.session_state.model.generate_content(prompt)
+                        st.markdown(f"<div class='intelligence-box'>{response.text}</div>", unsafe_allow_html=True)
+                    except Exception as ai_err:
+                        st.error(f"Intelligence Protocol Failed: {ai_err}")
+            else:
+                st.error("Model not initialized. Please re-login at the Command Center.")
 
     with tab_yield:
         st.markdown("### 💳 LIFESTYLE COVERAGE")
