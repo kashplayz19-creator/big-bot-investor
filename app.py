@@ -47,21 +47,41 @@ def verify_handshake(key):
         return True
     except: return False
 
-# --- 4. COMMAND CENTER (SIDEBAR) ---
+# --- 4. COMMAND CENTER (Secrets & Custom Passcode) ---
+# This looks for "GEMINI_API_KEY" in your GitHub/Streamlit Secrets
+try:
+    HIDDEN_GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
+except:
+    HIDDEN_GEMINI_KEY = None
+
+VAULT_PASSCODE = "1234" # <--- Change this to your desired 4-digit code
+
 with st.sidebar:
     st.markdown("<h1 class='gold-glow'>COMMAND CENTER</h1>", unsafe_allow_html=True)
+    
     if not st.session_state.authenticated:
-        key_input = st.text_input("ENTER ACCESS KEY", type="password")
-        if st.button("INITIATE HANDSHAKE"):
-            if verify_handshake(key_input):
-                st.session_state.authenticated = True
-                st.session_state.api_key = key_input
-                st.rerun()
-            else: st.error("ACCESS DENIED: KEY INVALID")
-    else:
-        st.success("ACCESS GRANTED")
-        st.write(f"**VAULT TIME:** {datetime.now(IST).strftime('%H:%M:%S')} IST")
+        # Front-door passcode for your phone
+        input_pass = st.text_input("ENTER VAULT PASSCODE", type="password")
         
+        if st.button("UNLOCK VAULT"):
+            if input_pass == VAULT_PASSCODE:
+                if HIDDEN_GEMINI_KEY and verify_handshake(HIDDEN_GEMINI_KEY):
+                    st.session_state.authenticated = True
+                    st.session_state.api_key = HIDDEN_GEMINI_KEY
+                    st.rerun()
+                elif not HIDDEN_GEMINI_KEY:
+                    st.error("DATABASE ERROR: Secret Key Not Found")
+                else:
+                    st.error("SYSTEM ERROR: Handshake Failed")
+            else:
+                st.error("ACCESS DENIED: INCORRECT PASSCODE")
+    else:
+        st.success("🏛️ SECURE CONNECTION")
+        if st.button("LOCK VAULT"):
+            st.session_state.authenticated = False
+            st.rerun()
+
+        # --- ASSET LOCKER FORM ---
         with st.form("add_asset"):
             st.markdown("### 📥 LOCK ASSET")
             tick = st.text_input("Ticker", "HDFCBANK.NS").upper()
@@ -71,7 +91,7 @@ with st.sidebar:
                 st.session_state.portfolio[tick] = {"shares": qty, "entry": entry}
                 st.rerun()
         
-        if st.button("CLEAR VAULT"):
+        if st.button("WIPE VAULT DATA"):
             st.session_state.portfolio = {}
             st.rerun()
 
